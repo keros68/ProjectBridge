@@ -1,0 +1,46 @@
+<UserControl x:Class="LocalProjectBridge.WebConnectionGuide"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <GroupBox Header="连接 ChatGPT 与网页验证">
+    <StackPanel>
+      <TextBlock x:Name="GuideStatus" TextWrapping="Wrap" FontWeight="SemiBold" />
+      <TextBlock Text="在 ChatGPT 对话的工具菜单（输入框旁的 + 或 @）中选中已添加的 ProjectBridge，再发送下方提示词。"
+                 TextWrapping="Wrap" Margin="0,8,0,0" />
+      <WrapPanel Margin="0,10,0,6">
+        <Button x:Name="CopyVerificationButton" Content="复制验证提示词" Click="CopyVerification_Click" Margin="0,0,8,6" />
+        <Button Content="打开 ChatGPT" Click="OpenChat_Click" Margin="0,0,8,6" />
+      </WrapPanel>
+      <TextBox x:Name="VerificationPromptText" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="110" VerticalScrollBarVisibility="Auto" />
+      <TextBlock x:Name="GuideFeedback" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" Margin="0,6,0,0" />
+      <TextBlock Text="普通的成功工具调用也会完成验证，无需每次聊天都单独测试。复制提示词不会改变连接状态。"
+                 TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" FontSize="12" Margin="0,6,0,8" />
+      <Expander x:Name="FirstTimeSteps" Header="首次使用：添加插件（只需一次）">
+        <StackPanel Margin="0,10,0,0">
+          <TextBlock Text="1. 在 ChatGPT 的设置 → 安全与登录中开启“开发人员模式”。若入口不可用，检查账号及工作区权限。" TextWrapping="Wrap" />
+          <Button Content="打开开发者设置" HorizontalAlignment="Left" Margin="0,8,0,10" Click="OpenDeveloper_Click" />
+          <TextBlock Text="2. 打开 ChatGPT 插件页，点击添加（+）。名称可填 ProjectBridge，说明可填“访问已授权的本地项目”。" TextWrapping="Wrap" />
+          <Button Content="打开插件页面" HorizontalAlignment="Left" Margin="0,8,0,10" Click="OpenPlugins_Click" />
+          <TextBlock x:Name="ProviderInstructions" TextWrapping="Wrap" />
+          <TextBlock x:Name="EndpointLabel" FontWeight="SemiBold" Margin="0,10,0,5" />
+          <TextBox x:Name="EndpointText" IsReadOnly="True" TextWrapping="Wrap" />
+          <Button x:Name="CopyEndpointButton" Content="复制连接信息" HorizontalAlignment="Left" Margin="0,8,0,10" Click="CopyEndpoint_Click" />
+          <StackPanel x:Name="PairingPanel" Visibility="Collapsed">
+            <TextBlock Text="OAuth 授权页要求配对码时，在这里生成并粘贴到网页。" TextWrapping="Wrap" />
+            <WrapPanel Margin="0,8,0,0">
+              <Button x:Name="GeneratePairingButton" Content="生成配对码" Click="GeneratePairing_Click" Margin="0,0,8,6" />
+              <Button x:Name="CopyGuidePairingButton" Content="复制配对码" IsEnabled="False" Click="CopyPairing_Click" Margin="0,0,0,6" />
+            </WrapPanel>
+            <TextBox x:Name="GuidePairingCode" IsReadOnly="True" TextWrapping="Wrap" />
+          </StackPanel>
+          <TextBlock Text="3. 创建并完成网页授权后，回到聊天窗口选中该插件，发送验证提示词。收到成功工具调用后，主窗口自动显示“网页已验证”。" TextWrapping="Wrap" Margin="0,8,0,0" />
+        </StackPanel>
+      </Expander>
+      <Expander Header="已有插件，但仍然无法验证" Margin="0,10,0,0">
+        <StackPanel Margin="0,8,0,0">
+          <TextBlock x:Name="TroubleshootingText" TextWrapping="Wrap" />
+          <Button Content="查看官方说明" HorizontalAlignment="Left" Margin="0,8,0,0" Click="OpenDocs_Click" />
+        </StackPanel>
+      </Expander>
+    </StackPanel>
+  </GroupBox>
+</UserControl>

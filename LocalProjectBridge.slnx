@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="src/LocalProjectBridge.Core/LocalProjectBridge.Core.csproj" />
+  <Project Path="src/LocalProjectBridge/LocalProjectBridge.csproj" />
+  <Project Path="src/CodexShim/CodexShim.csproj" />
+  <Project Path="src/ProjectBridge.Relay/ProjectBridge.Relay.csproj" />
+  <Project Path="tests/LocalProjectBridge.Core.Tests/LocalProjectBridge.Core.Tests.csproj" />
+</Solution>

@@ -1,0 +1,189 @@
+<Window x:Class="LocalProjectBridge.SetupWizardWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:LocalProjectBridge"
+        Title="建立共享连接" Icon="Assets/ProjectBridge.ico" Width="940" Height="760"
+        MinWidth="640" MinHeight="500"
+        MaxWidth="{Binding Source={x:Static SystemParameters.WorkArea}, Path=Width}"
+        MaxHeight="{Binding Source={x:Static SystemParameters.WorkArea}, Path=Height}"
+        Style="{StaticResource {x:Type Window}}" WindowStartupLocation="CenterOwner">
+
+  <Grid Margin="30,22,30,18">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <TextBlock x:Name="WizardTitle" Text="建立共享连接" FontSize="27" FontWeight="SemiBold" />
+    <TextBlock x:Name="StepIndicator" Grid.Row="1" Text="第 1 步，共 3 步" Foreground="#68707D" Margin="0,5,0,14" />
+
+    <ScrollViewer x:Name="SetupScrollViewer" Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,0,-12,0" Padding="0,0,12,0">
+    <Grid>
+      <StackPanel x:Name="ProjectPanel">
+        <Border Background="#EEF4FF" CornerRadius="7" Padding="10" Margin="0,0,0,10">
+          <Grid>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+            <TextBlock Text="首次使用：还需在 ChatGPT 添加插件" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0" />
+            <Button x:Name="PluginGuideButton" Grid.Column="1" Content="添加 ChatGPT 插件" Style="{StaticResource PrimaryButton}" Click="OpenPluginGuide_Click" />
+          </Grid>
+        </Border>
+        <Grid>
+          <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+          <TextBlock Text="连接设置" FontSize="20" FontWeight="SemiBold" />
+          <TextBlock x:Name="ConnectionConfigurationStatus" Grid.Column="1" Text="保存后下次连接生效。" TextWrapping="Wrap" Foreground="#5F6672" Margin="14,6,12,0" />
+          <Button x:Name="SaveConnectionConfigurationButton" Grid.Column="2" Content="保存连接配置"
+                  Click="SaveConnectionConfiguration_Click" />
+        </Grid>
+        <TextBlock Text="固定入口可在断开或重启后继续使用；首次试用也可选择临时连接。" TextWrapping="Wrap" Foreground="#5F6672" Margin="0,5,0,12" />
+
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="18" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <StackPanel>
+            <RadioButton x:Name="QuickProvider" GroupName="ConnectionProvider" Content="临时 OAuth 连接" IsChecked="True" Checked="ConnectionProvider_Checked" />
+            <TextBlock Foreground="#5F6672" Margin="22,3,0,0" TextWrapping="Wrap">
+              <Run Text="首次试用；重启后地址可能变化。需要 Node.js，" />
+              <Hyperlink NavigateUri="https://nodejs.org/" RequestNavigate="OpenLink_RequestNavigate">下载</Hyperlink>
+              <Run Text="。" />
+            </TextBlock>
+          </StackPanel>
+          <StackPanel Grid.Column="2">
+            <RadioButton x:Name="SecureProvider" GroupName="ConnectionProvider" Content="OpenAI Secure Tunnel（固定入口）" Checked="ConnectionProvider_Checked" />
+            <TextBlock Text="日常使用；断开后可重新连接同一个入口。" TextWrapping="Wrap" Foreground="#5F6672" Margin="22,3,0,0" />
+          </StackPanel>
+        </Grid>
+
+        <Border x:Name="SecureTunnelPanel" Visibility="Collapsed" Background="White" BorderBrush="#D8DEE9" BorderThickness="1" CornerRadius="7" Padding="14,11" Margin="0,12,0,0">
+          <StackPanel>
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="18" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <StackPanel>
+                <TextBlock Margin="0,0,0,5" TextWrapping="Wrap">
+                  <Run Text="固定入口 ID　" />
+                  <Hyperlink NavigateUri="https://platform.openai.com/settings/organization/tunnels" RequestNavigate="OpenLink_RequestNavigate">查看或创建入口</Hyperlink>
+                </TextBlock>
+                <TextBox x:Name="TunnelId" ToolTip="粘贴 OpenAI 生成的 tunnel_...，不是 key_..." />
+                <TextBlock x:Name="TunnelIdHelp" Text="复制 tunnel_ 开头的 ID；同一入口不要同时交给两个本地程序使用。" TextWrapping="Wrap" Foreground="#5F6672" Margin="0,5,0,0" />
+              </StackPanel>
+              <StackPanel Grid.Column="2">
+                <TextBlock Margin="0,0,0,5" TextWrapping="Wrap">
+                  <Run Text="运行密钥　" />
+                  <Hyperlink NavigateUri="https://platform.openai.com/settings/organization/api-keys" RequestNavigate="OpenLink_RequestNavigate">创建运行密钥</Hyperlink>
+                </TextBlock>
+                <Grid>
+                  <PasswordBox x:Name="RuntimeKeyInput" ToolTip="粘贴新密钥可替换已保存的密钥；留空继续使用原密钥。"
+                               PasswordChanged="RuntimeKeyInput_Changed" />
+                  <TextBlock x:Name="RuntimeKeySavedPlaceholder" Text="••••••••" Visibility="Collapsed"
+                             IsHitTestVisible="False" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="#5F6672" />
+                </Grid>
+                <TextBlock x:Name="RuntimeKeyHelp" Text="粘贴创建时显示的完整 sk-...；key_... Tracking ID 不能用于连接。" TextWrapping="Wrap" Foreground="#5F6672" Margin="0,5,0,0" />
+              </StackPanel>
+            </Grid>
+            <Grid Margin="0,7,0,0">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+              <TextBlock x:Name="RuntimeKeyStatus" Text="尚未保存运行密钥。" TextWrapping="Wrap" Foreground="#5F6672" />
+              <TextBlock Grid.Column="1" Text="保存到当前 Windows 用户的凭据管理器，配置文件不保存密钥。" TextWrapping="Wrap" Foreground="#5F6672" Margin="12,0,0,0" />
+            </Grid>
+            <Expander Header="高级：使用已有密钥配置" Margin="0,7,0,0">
+              <StackPanel Margin="0,7,0,0">
+                <TextBox x:Name="RuntimeKeyReference" ToolTip="env:变量名 或 file:完整路径" />
+                <TextBlock Text="支持环境变量或密钥文件；填写后无需粘贴密钥。" TextWrapping="Wrap" Foreground="#5F6672" Margin="0,5,0,0" />
+              </StackPanel>
+            </Expander>
+          </StackPanel>
+        </Border>
+
+        <TextBlock x:Name="ProjectConnectionHelp" Text="项目在首页添加和授权，所有项目共用此连接。" TextWrapping="Wrap" Foreground="#5F6672" Margin="0,12,0,0" />
+      </StackPanel>
+
+      <StackPanel x:Name="PreparingPanel" Visibility="Collapsed" VerticalAlignment="Center">
+        <TextBlock Text="正在准备连接" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" />
+        <TextBlock Text="复用已有组件并建立共享连接。添加其他项目时无需重复设置。" TextWrapping="Wrap" Foreground="#5F6672" Margin="0,8,0,22" HorizontalAlignment="Center" />
+        <ProgressBar Height="7" IsIndeterminate="True" />
+        <TextBlock x:Name="InstallMessage" Text="正在检查程序组件…" TextWrapping="Wrap" Foreground="#5F6672" Margin="0,12,0,0" HorizontalAlignment="Center" />
+      </StackPanel>
+
+      <StackPanel x:Name="ConnectPanel" Visibility="Collapsed">
+       <StackPanel Margin="0,0,10,0">
+        <TextBlock Text="在 ChatGPT 中确认连接" FontSize="20" FontWeight="SemiBold" />
+        <TextBlock Text="按以下步骤在 ChatGPT 中添加连接并完成授权。" TextWrapping="Wrap" Foreground="#5F6672" Margin="0,7,0,18" />
+
+        <Border Background="White" BorderBrush="#D9DDE5" BorderThickness="1" CornerRadius="6" Padding="16">
+          <StackPanel>
+            <TextBlock Text="1. 开启开发人员模式" FontWeight="SemiBold" />
+            <TextBlock Text="首次连接需要开启一次，以后不用重复设置。" Foreground="#5F6672" Margin="0,6,0,0" />
+            <Button Content="打开模式设置" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Margin="0,9,0,8" Click="OpenDeveloperMode_Click" />
+            <CheckBox x:Name="DeveloperModeReady" Content="已经开启开发人员模式" Margin="0,0,0,16" Checked="DeveloperModeReady_Checked" Unchecked="DeveloperModeReady_Checked" />
+
+            <TextBlock Text="2. 添加连接" FontWeight="SemiBold" />
+            <Button x:Name="OpenConnectorButton" Content="打开添加连接页面" IsEnabled="False" HorizontalAlignment="Left" Margin="0,9,0,10" Click="OpenChatGpt_Click" />
+            <TextBlock Text="名称" Foreground="#68707D" Margin="0,9,0,4" />
+            <Grid>
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+              <TextBox x:Name="ConnectorName" IsReadOnly="True" />
+              <Button Grid.Column="1" Content="复制" Margin="10,0,0,0" Click="CopyName_Click" />
+            </Grid>
+            <TextBlock Text="服务器地址" Foreground="#68707D" Margin="0,10,0,4" />
+            <Grid>
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+              <TextBox x:Name="ConnectorUrl" IsReadOnly="True" />
+              <Button Grid.Column="1" Content="复制" Margin="10,0,0,0" Click="CopyUrl_Click" />
+            </Grid>
+            <TextBlock Text="认证方式选择 OAuth，然后确认。" Foreground="#5F6672" Margin="0,8,0,16" />
+
+            <TextBlock Text="3. 完成授权" FontWeight="SemiBold" />
+            <StackPanel Orientation="Horizontal" Margin="0,9,0,0">
+              <Button x:Name="PairButton" Content="生成配对码" Click="CreatePairingCode_Click" />
+              <TextBlock x:Name="PairingCodeText" FontSize="22" FontWeight="SemiBold" Margin="14,6,0,0" />
+              <Button x:Name="CopyPairingButton" Content="复制" Margin="12,0,0,0" Visibility="Collapsed" Click="CopyPairing_Click" />
+            </StackPanel>
+            <TextBlock Text="授权页面出现输入框后再生成。配对码不会保存。" Foreground="#5F6672" Margin="0,7,0,0" />
+          </StackPanel>
+        </Border>
+
+        <TextBlock Text="完成网页授权后会自动保留连接，无需再次勾选确认。" TextWrapping="Wrap" Foreground="#5F6672" Margin="0,16,0,0" />
+
+        <Expander Header="高级连接选项" Margin="0,15,0,0">
+          <StackPanel Margin="0,10,0,0">
+            <TextBlock Text="临时连接免费使用，但地址变化后需要在 ChatGPT 中重新添加。固定连接需要 Cloudflare 账号和自己的域名。" TextWrapping="Wrap" Foreground="#5F6672" />
+            <RadioButton x:Name="QuickConnection" Content="临时连接" IsChecked="True" Margin="0,10,0,5" />
+            <RadioButton x:Name="FixedConnection" Content="固定连接" Margin="0,5" Checked="FixedConnection_Checked" Unchecked="FixedConnection_Checked" />
+            <TextBox x:Name="DomainName" IsEnabled="False" Margin="22,5,0,0" ToolTip="例如 example.com" />
+            <Button Content="应用连接方式" HorizontalAlignment="Left" Margin="22,10,0,0" Click="ApplyConnectionMode_Click" />
+          </StackPanel>
+        </Expander>
+       </StackPanel>
+      </StackPanel>
+
+      <StackPanel x:Name="SuccessPanel" Visibility="Collapsed" VerticalAlignment="Top" HorizontalAlignment="Stretch">
+        <TextBlock Text="✓" FontSize="46" Foreground="#15803D" HorizontalAlignment="Center" />
+        <TextBlock x:Name="SuccessTitle" Text="共享连接已建立" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,8,0,0" />
+        <TextBlock x:Name="SuccessDescription" Text="关闭此窗口后连接继续保留。以后可在项目页添加、移除项目或修改权限，无需重新连接。" Foreground="#5F6672" Margin="0,8,0,0" TextWrapping="Wrap" MaxWidth="430" TextAlignment="Center" />
+        <TextBlock x:Name="SuccessExitNote" Text="退出程序或点击“断开”会结束连接。临时地址在下次启动时可能变化。" Foreground="#5F6672" Margin="0,8,0,0" TextWrapping="Wrap" MaxWidth="430" TextAlignment="Center" />
+        <local:WebConnectionGuide x:Name="SuccessWebGuide" Margin="0,16,0,0" />
+      </StackPanel>
+    </Grid>
+    </ScrollViewer>
+
+    <Grid Grid.Row="3" Margin="0,12,0,0">
+      <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+      <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="100">
+        <TextBlock x:Name="WizardError" Style="{StaticResource OptionalDetail}" Foreground="#B42318" Margin="0,0,0,12" />
+      </ScrollViewer>
+      <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right">
+        <Button x:Name="CancelConnectionButton" Content="取消连接" Visibility="Collapsed" Margin="0,0,10,0" Click="CancelConnection_Click" />
+        <Button x:Name="LaterButton" Content="稍后" Margin="0,0,10,0" Click="CloseButton_Click" />
+        <Button x:Name="NextButton" Content="准备连接" Style="{StaticResource PrimaryButton}" Click="NextButton_Click" />
+      </StackPanel>
+    </Grid>
+  </Grid>
+</Window>

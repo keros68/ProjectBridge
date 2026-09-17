@@ -1,0 +1,260 @@
+<Window x:Class="LocalProjectBridge.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:LocalProjectBridge"
+        Title="ProjectBridge" Icon="Assets/ProjectBridge.ico"
+        Width="1100" Height="860" MinWidth="620" MinHeight="360"
+        MaxWidth="{Binding Source={x:Static SystemParameters.WorkArea}, Path=Width}"
+        MaxHeight="{Binding Source={x:Static SystemParameters.WorkArea}, Path=Height}"
+        Style="{StaticResource {x:Type Window}}" WindowStartupLocation="CenterScreen">
+  <Grid Margin="24,20,24,18">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <Grid>
+      <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+      <StackPanel>
+        <TextBlock Text="ProjectBridge" FontSize="25" FontWeight="SemiBold" />
+        <TextBlock Text="一个连接，按项目权限提供文件读写和协作请求回复。" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" Margin="0,4,0,0" />
+      </StackPanel>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="20,0,0,0">
+        <Ellipse x:Name="StatusDot" Width="10" Height="10" Fill="#8A919E" Margin="0,1,9,0" />
+        <StackPanel>
+          <TextBlock x:Name="StatusText" Text="未连接" FontWeight="SemiBold" HorizontalAlignment="Right" />
+          <TextBlock x:Name="HeaderRecentAccess" Text="本次网页访问：尚无" Foreground="{StaticResource MutedTextBrush}" FontSize="12" HorizontalAlignment="Right" />
+          <Button x:Name="HeaderWebGuideButton" Content="添加插件 / 验证连接" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Margin="0,8,0,0" Click="ShowWebGuide_Click" />
+        </StackPanel>
+      </StackPanel>
+    </Grid>
+
+    <TabControl x:Name="MainTabs" Grid.Row="1" Margin="0,16,0,14">
+      <TabItem Header="项目">
+        <Grid Margin="14">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="180" MinWidth="130" />
+            <ColumnDefinition Width="12" />
+            <ColumnDefinition Width="*" MinWidth="220" />
+          </Grid.ColumnDefinitions>
+
+          <Grid>
+            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+            <TextBlock Text="已授权项目" FontWeight="SemiBold" Margin="2,0,0,8" />
+            <ListBox x:Name="ProjectPicker" Grid.Row="1" DisplayMemberPath="Name" SelectionChanged="ProjectPicker_SelectionChanged" />
+            <StackPanel Grid.Row="2" Margin="0,10,0,0">
+              <Button x:Name="AddProjectButton" Content="添加项目" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Stretch" Click="AddProject_Click" />
+              <Button x:Name="RemoveProjectButton" Content="移除项目" HorizontalAlignment="Stretch" Margin="0,8,0,0" Click="RemoveProject_Click" />
+            </StackPanel>
+          </Grid>
+
+          <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,8,0">
+            <StackPanel>
+              <TextBlock x:Name="SelectedProjectName" Text="选择一个项目" FontSize="20" FontWeight="SemiBold" />
+              <TextBox x:Name="ProjectPathText" IsReadOnly="True" TextWrapping="Wrap" Margin="0,8,0,16" />
+
+              <GroupBox Header="项目权限">
+                <StackPanel>
+                  <CheckBox x:Name="ReviewOnly" IsChecked="True" Checked="Capability_Changed" Unchecked="Capability_Changed">
+                    <TextBlock Text="允许网页读取、搜索和查看 Git 差异" TextWrapping="Wrap" />
+                  </CheckBox>
+                  <CheckBox x:Name="DelegateTasks" IsChecked="False" Checked="Capability_Changed" Unchecked="Capability_Changed">
+                    <TextBlock Text="允许网页委派 Codex 任务" TextWrapping="Wrap" />
+                  </CheckBox>
+                  <CheckBox x:Name="DelegateWritableTasks" IsChecked="False" Checked="Capability_Changed" Unchecked="Capability_Changed" Margin="22,4,0,0">
+                    <TextBlock Text="允许 Codex 修改项目并运行本地检查" TextWrapping="Wrap" />
+                  </CheckBox>
+                  <TextBlock Text="写入任务使用 Codex 工作区权限，不使用修改预览或恢复资料；不授予网络或提升权限。"
+                             TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" FontSize="12" Margin="44,3,0,0" />
+                  <CheckBox x:Name="CollaborationPermission" Checked="Capability_Changed" Unchecked="Capability_Changed">
+                    <TextBlock Text="允许本地与网页交换协作请求" TextWrapping="Wrap" />
+                  </CheckBox>
+                  <TextBlock x:Name="CapabilityAvailabilityText" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" FontSize="12" Margin="22,3,0,0" />
+                </StackPanel>
+              </GroupBox>
+
+              <GroupBox Header="权限与访问">
+                <StackPanel>
+                  <TextBlock x:Name="ProjectPermissionText" TextWrapping="Wrap" />
+                  <TextBlock x:Name="ProjectRecentAccessText" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" Margin="0,8,0,0" />
+                </StackPanel>
+              </GroupBox>
+            </StackPanel>
+          </ScrollViewer>
+        </Grid>
+      </TabItem>
+
+      <TabItem Header="连接">
+        <ScrollViewer x:Name="ConnectionScrollViewer" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="14,14,22,14">
+          <StackPanel>
+            <TextBlock Text="连接状态" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,14" />
+            <Border x:Name="ErrorPanel" Background="#FFF5F5" BorderBrush="#F0B4B4" BorderThickness="1" CornerRadius="7" Padding="16" Margin="0,0,0,14" Visibility="Collapsed">
+              <StackPanel>
+                <TextBlock x:Name="ErrorSummaryText" Foreground="#9B1C1C" FontWeight="SemiBold" TextWrapping="Wrap" />
+                <TextBlock x:Name="ErrorActionText" Foreground="#7F1D1D" TextWrapping="Wrap" Margin="0,7,0,0" />
+                <Expander x:Name="ErrorDetailsExpander" Header="详细信息" Margin="0,8,0,0">
+                  <TextBox x:Name="ErrorDetailsText" IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True" MaxHeight="160" VerticalScrollBarVisibility="Auto" Margin="0,8,0,0" />
+                </Expander>
+              </StackPanel>
+            </Border>
+            <local:WebConnectionGuide x:Name="ConnectionWebGuide" />
+            <UniformGrid Columns="2" Margin="0,0,0,14">
+              <GroupBox Header="本地服务"><TextBlock x:Name="LocalStatusText" Text="未确认" /></GroupBox>
+              <GroupBox Header="安全隧道"><TextBlock x:Name="TunnelStatusText" Text="未确认" /></GroupBox>
+              <GroupBox Header="网页授权"><TextBlock x:Name="AuthorizationStatusText" Text="未确认" /></GroupBox>
+              <GroupBox Header="最近网页访问"><TextBlock x:Name="LastWebCallText" Text="尚无" TextWrapping="Wrap" /></GroupBox>
+            </UniformGrid>
+
+            <GroupBox Header="当前连接">
+              <StackPanel>
+                <TextBlock x:Name="ConnectionIdentityText" TextWrapping="Wrap" />
+                <TextBlock x:Name="StatusDetail" Style="{StaticResource OptionalDetail}" Foreground="{StaticResource MutedTextBrush}" Margin="0,8,0,0" />
+              </StackPanel>
+            </GroupBox>
+
+            <Expander Header="诊断详情">
+              <StackPanel Margin="0,10,0,0">
+                <TextBlock x:Name="RuntimeStatus" TextWrapping="Wrap" />
+                <WrapPanel Margin="0,12,0,0">
+                  <Button Content="重新检测" Click="RefreshDiagnostics_Click" Margin="0,0,10,8" />
+                  <Button Content="复制诊断" Click="CopyDiagnostics_Click" Margin="0,0,0,8" />
+                </WrapPanel>
+              </StackPanel>
+            </Expander>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="设置">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="14,14,22,14">
+          <StackPanel>
+            <TextBlock Text="启动设置" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,14" />
+            <GroupBox Header="Windows 登录">
+              <StackPanel>
+                <CheckBox x:Name="StartWithWindowsSetting" Content="登录 Windows 时启动 ProjectBridge" Checked="StartWithWindowsSetting_Changed" Unchecked="StartWithWindowsSetting_Changed" />
+                <TextBlock Text="登录电脑后自动打开软件并进入托盘。是否自动连接，由下方开关决定。" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" FontSize="12" Margin="22,3,0,0" />
+              </StackPanel>
+            </GroupBox>
+            <GroupBox Header="启动后自动连接">
+              <StackPanel>
+                <CheckBox x:Name="RestoreReadOnlyConnectionSetting" Content="打开软件后自动连接（只读）" Checked="RestoreReadOnlyConnectionSetting_Changed" Unchecked="RestoreReadOnlyConnectionSetting_Changed" />
+                <TextBlock Text="复用已保存的连接，供网页读取已授权项目，省去点击“建立连接”。YOLO 需手动开启；两个开关都勾选可在登录电脑后自动连接。" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" FontSize="12" Margin="22,3,0,0" />
+              </StackPanel>
+            </GroupBox>
+            <GroupBox Header="Codex 自动协作">
+              <StackPanel>
+                <TextBlock Text="当前 Windows 用户安装一次，所有项目共用。项目访问权限需分别开启；每个 Codex 任务单独绑定协作对话。已有同名 Skill 会保留。" TextWrapping="Wrap" />
+                <Button Content="安装 Codex 协作 Skill" HorizontalAlignment="Left" Margin="0,10,0,0" Click="InstallCodexSkill_Click" />
+                <TextBlock x:Name="CodexSkillInstallStatus" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" Margin="0,7,0,0" />
+              </StackPanel>
+            </GroupBox>
+            <GroupBox Header="当前版本能力">
+              <TextBlock Text="网页可读取项目并提交修改预览；每个项目可选择本机确认，或为当前已验证连接限时开启 YOLO 自动应用。Codex 可通过配套 Skill 在绑定的 ChatGPT 对话中取得规划与复核。" TextWrapping="Wrap" />
+            </GroupBox>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="编辑">
+        <ScrollViewer x:Name="EditScrollViewer" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="14,14,22,14">
+          <StackPanel>
+            <TextBlock Text="网页修改" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,14" />
+            <GroupBox Header="写入模式">
+              <StackPanel>
+                <TextBlock x:Name="WriteProjectText" TextWrapping="Wrap" />
+                <TextBlock x:Name="WriteClientText" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" Margin="0,6,0,0" />
+                <TextBlock x:Name="WriteLeaseStatusText" TextWrapping="Wrap" Margin="0,8,0,0" />
+                <WrapPanel Margin="0,10,0,0">
+                  <CheckBox x:Name="AutoApplyToggle" Content="YOLO：网页修改自动应用" VerticalAlignment="Center"
+                            Checked="AutoApply_Changed" Unchecked="AutoApply_Changed" />
+                  <TextBlock Text="有效期" VerticalAlignment="Center" Margin="18,0,6,0" />
+                  <ComboBox x:Name="AutoApplyDuration" Width="96" SelectedIndex="3"
+                            SelectionChanged="AutoApplyDuration_SelectionChanged">
+                    <ComboBoxItem Content="15 分钟" Tag="15" />
+                    <ComboBoxItem Content="30 分钟" Tag="30" />
+                    <ComboBoxItem Content="60 分钟" Tag="60" />
+                    <ComboBoxItem Content="120 分钟" Tag="120" />
+                  </ComboBox>
+                </WrapPanel>
+                <TextBlock x:Name="AutoApplyStatusText" TextWrapping="Wrap" Margin="22,6,0,0" />
+                <TextBlock x:Name="AutoApplyScopeText" Text="固定 Tunnel 的可访问者共用此授权。" TextWrapping="Wrap"
+                           Foreground="{StaticResource MutedTextBrush}" FontSize="12" Margin="22,4,0,0" />
+                <TextBlock Text="默认关闭。开启后，此项目在当前已验证连接中的文件修改与恢复免逐次确认，包括补丁、新建、重命名和删除；到期、断开或退出即关闭。"
+                           TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" FontSize="12" Margin="0,6,0,0" />
+              </StackPanel>
+            </GroupBox>
+
+            <GroupBox Header="待处理修改">
+              <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="240"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions><RowDefinition Height="160"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <ListBox x:Name="ChangeList" DisplayMemberPath="DisplaySummary" SelectionChanged="ChangeList_SelectionChanged" />
+                <Grid Grid.Column="2">
+                  <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                  <TextBox x:Name="ChangePreviewText" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                           HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" />
+                  <TextBlock x:Name="ChangeResultText" Grid.Row="1" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" Margin="0,8,0,0" />
+                </Grid>
+                <WrapPanel Grid.Row="1" Grid.ColumnSpan="3" HorizontalAlignment="Right" Margin="0,12,0,0">
+                  <Button Content="刷新" Margin="0,0,8,0" Click="RefreshChanges_Click" />
+                  <Button x:Name="ApplyChangeButton" Content="应用修改" Margin="0,0,8,0" Click="ApplyChange_Click" />
+                  <Button x:Name="RejectChangeButton" Content="拒绝修改" Margin="0,0,8,0" Click="RejectChange_Click" />
+                  <Button x:Name="ConfirmDeletionButton" Content="确认删除" Margin="0,0,8,0" Click="ConfirmDeletion_Click" />
+                  <Button x:Name="RestoreChangeButton" Content="安全恢复" Click="RestoreChange_Click" />
+                </WrapPanel>
+              </Grid>
+            </GroupBox>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="协作记录">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="14,14,22,14">
+          <StackPanel>
+            <TextBlock Text="Codex 与 ChatGPT 协作记录" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,14" />
+            <GroupBox Header="自动协作状态">
+              <StackPanel>
+                <TextBlock x:Name="CollaborationProjectText" TextWrapping="Wrap" />
+                <TextBlock Text="在 Codex 中说“请 ChatGPT 帮我规划或复核”。配套 Skill 负责发送和取回建议，这里查看进度、回复及失败原因，平时无需操作。"
+                           TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" FontSize="12" Margin="0,6,0,0" />
+              </StackPanel>
+            </GroupBox>
+
+            <GroupBox Header="协作记录">
+              <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="190" MinWidth="130" /><ColumnDefinition Width="12" /><ColumnDefinition Width="*" MinWidth="220" /></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions><RowDefinition Height="280" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <ListBox x:Name="CollaborationRequestList" DisplayMemberPath="DisplaySummary" SelectionChanged="CollaborationRequestList_SelectionChanged" />
+                <Grid Grid.Column="2">
+                  <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                  <TextBlock x:Name="CollaborationStatusText" FontWeight="SemiBold" TextWrapping="Wrap" />
+                  <TextBox x:Name="CollaborationRequestDetailText" Grid.Row="1" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
+                           MinHeight="72" VerticalScrollBarVisibility="Auto" Margin="0,8,0,0" />
+                  <TextBlock Grid.Row="2" Text="网页回复" Foreground="{StaticResource MutedTextBrush}" Margin="0,10,0,4" />
+                  <TextBox x:Name="CollaborationReplyText" Grid.Row="3" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
+                           MinHeight="72" VerticalScrollBarVisibility="Auto" />
+                </Grid>
+                <WrapPanel Grid.Row="1" Grid.ColumnSpan="3" HorizontalAlignment="Right" Margin="0,12,0,0">
+                  <Button Content="刷新" Margin="0,0,8,0" Click="RefreshCollaborationRequests_Click" />
+                  <Button x:Name="CopyCollaborationReplyButton" Content="复制回复" Margin="0,0,8,0" Click="CopyCollaborationReply_Click" />
+                  <Button x:Name="CancelCollaborationRequestButton" Content="取消请求" Click="CancelCollaborationRequest_Click" />
+                </WrapPanel>
+              </Grid>
+            </GroupBox>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+    </TabControl>
+
+    <Border Grid.Row="2" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="0,12,0,0">
+      <WrapPanel>
+        <Button x:Name="ConnectButton" Content="建立连接" Style="{StaticResource PrimaryButton}" Margin="0,0,10,0" Click="Connect_Click" />
+        <Button x:Name="DisconnectButton" Content="断开" IsEnabled="False" Margin="0,0,10,0" Click="Disconnect_Click" />
+        <Button x:Name="CopyConnectionButton" Content="复制连接信息" IsEnabled="False" Margin="0,0,10,0" Click="CopyConnection_Click" />
+        <Button x:Name="OpenSetupButton" Content="连接设置" Click="OpenSetupWizard_Click" Margin="0,0,10,0" />
+        <Button x:Name="ForgetPairingButton" Content="解除配对" IsEnabled="False" Click="ForgetPairing_Click" />
+      </WrapPanel>
+    </Border>
+  </Grid>
+</Window>

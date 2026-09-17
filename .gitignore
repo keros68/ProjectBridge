@@ -1,0 +1,11 @@
+bin/
+obj/
+.vs/
+*.user
+*.suo
+artifacts/
+acceptance/
+TestResults/
+*.trx
+node_modules/
+docs/internal/

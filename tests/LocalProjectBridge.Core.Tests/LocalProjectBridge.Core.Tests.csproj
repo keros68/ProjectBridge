@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>LocalProjectBridge.Core.Tests</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\LocalProjectBridge.Core\LocalProjectBridge.Core.csproj" />
+    <ProjectReference Include="..\..\src\LocalProjectBridge\LocalProjectBridge.csproj" />
+    <None Include="..\..\src\LocalProjectBridge\App.xaml" Link="AppResources.xaml" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "unknownProject": "deny",
+  "projects": {
+    "D:\\work\\chatbridge": {
+      "name": "chatbridge-smoke-test",
+      "sync": true,
+      "allowCodexTasks": true
+    }
+  }
+}

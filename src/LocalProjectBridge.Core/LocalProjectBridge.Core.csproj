@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>LocalProjectBridge.Core</RootNamespace>
+    <Description>Local Project Bridge 核心库：会话控制、项目策略、路径与敏感文件防护、进程监管与上游适配器。不包含任何 UI 依赖。</Description>
+  </PropertyGroup>
+  <ItemGroup><EmbeddedResource Include="Backend\shared-bridge.mjs" /></ItemGroup>
+</Project>
