@@ -117,7 +117,9 @@ if (-not $SkipBundle) {
     Copy-Item -LiteralPath (Join-Path $RepositoryRoot "README.md") -Destination $PublishRoot -Force
     $PublishedDocs = Join-Path $PublishRoot "docs"
     New-Item -ItemType Directory -Path $PublishedDocs -Force | Out-Null
-    Copy-Item -LiteralPath (Join-Path $RepositoryRoot "docs\auto-consult.md") -Destination $PublishedDocs -Force
+    foreach ($Doc in @("guide.md", "technical.md", "auto-consult.md")) {
+        Copy-Item -LiteralPath (Join-Path $RepositoryRoot "docs\$Doc") -Destination $PublishedDocs -Force
+    }
     Copy-Item -LiteralPath (Join-Path $RepositoryRoot "THIRD-PARTY-NOTICES.md") -Destination $PublishRoot -Force
     Copy-Item -LiteralPath (Join-Path $RepositoryRoot "LICENSE") -Destination $PublishRoot -Force
     Copy-Item -LiteralPath (Join-Path $RepositoryRoot "third-party\transceiver\SOURCE-INFO.md") -Destination (Join-Path $BackendTarget "transceiver") -Force
