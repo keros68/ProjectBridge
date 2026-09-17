@@ -4,7 +4,7 @@
 
 # ProjectBridge
 
-[下载](https://github.com/keros68/ProjectBridge/releases/latest) · [快速开始](#快速开始) · [使用说明](docs/guide.md) · [技术说明](docs/technical.md) · [许可证](#许可证)
+[English](README_en.md) · [下载](https://github.com/keros68/ProjectBridge/releases/latest) · [快速开始](#快速开始) · [使用说明](docs/guide.md) · [技术说明](docs/technical.md) · [许可证](#许可证)
 
 **让 ChatGPT 网页端读取、修改你的本地项目，并把开发任务交给本机 Codex。**
 

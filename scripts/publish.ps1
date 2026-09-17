@@ -114,7 +114,9 @@ if (-not $SkipBundle) {
         if (-not (Test-Path -LiteralPath $RuntimeFile)) { throw "缺少发布运行组件：$RuntimeFile" }
         Copy-Item -LiteralPath $RuntimeFile -Destination $RuntimeTarget -Force
     }
-    Copy-Item -LiteralPath (Join-Path $RepositoryRoot "README.md") -Destination $PublishRoot -Force
+    foreach ($Readme in @("README.md", "README_en.md")) {
+        Copy-Item -LiteralPath (Join-Path $RepositoryRoot $Readme) -Destination $PublishRoot -Force
+    }
     $PublishedDocs = Join-Path $PublishRoot "docs"
     New-Item -ItemType Directory -Path $PublishedDocs -Force | Out-Null
     foreach ($Doc in @("guide.md", "technical.md", "auto-consult.md")) {
