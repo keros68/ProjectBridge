@@ -93,6 +93,25 @@ public sealed class SharedCodexTaskToolsTests : IDisposable
     }
 
     [Fact]
+    public async Task MovedProjectFolderDoesNotBlockReconcile()
+    {
+        var owners = new List<FakeOwner>();
+        await using var runtime = new SharedCodexTaskRuntime((project, _) => {
+            var owner = new FakeOwner(); owners.Add(owner);
+            return Task.FromResult(new CodexTaskBridgeLease(new FakeBridge(project.Name), owner));
+        });
+        await runtime.GetBridgeAsync(_a, CancellationToken.None);
+
+        var missing = new ProjectRecord { Name = "moved", Path = Path.Combine(_root, "moved-away"), AllowCodexTasks = true };
+        await runtime.ReconcileAsync([_a, _b, missing]);
+        Assert.False(owners[0].Disposed);
+
+        Directory.Delete(_a.Path, recursive: true);
+        await runtime.ReconcileAsync([_a, _b]);
+        Assert.True(owners[0].Disposed);
+    }
+
+    [Fact]
     public async Task TaskOnlyProjectAppearsInSharedProjectListWithDelegateCapability()
     {
         _a.AllowWebRead = false;

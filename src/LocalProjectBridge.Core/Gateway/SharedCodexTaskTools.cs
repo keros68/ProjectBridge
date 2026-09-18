@@ -63,8 +63,9 @@ public sealed class SharedCodexTaskRuntime : ISharedCodexTaskRuntime
     public async Task ReconcileAsync(IEnumerable<ProjectRecord> projects, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(projects);
+        // 目录被移走或删除的项目按“未授权”处理，不能让它阻断其他项目的权限刷新。
         var allowed = projects
-            .Where(project => project.AllowCodexTasks)
+            .Where(project => project.AllowCodexTasks && Directory.Exists(project.Path))
             .ToDictionary(project => project.Id, project => (Path: ProjectPathGuard.CanonicalizeProjectRoot(project.Path), project.AllowCodexWrite));
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
