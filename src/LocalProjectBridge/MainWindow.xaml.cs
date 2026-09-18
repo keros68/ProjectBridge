@@ -35,6 +35,7 @@ public partial class MainWindow : Window
     private bool _reloadingProjects;
     private bool _initializingSettings = true;
     private UpdateInfo? _availableUpdate;
+    private readonly DispatcherTimer _updateTimer = new() { Interval = TimeSpan.FromHours(6) };
     private readonly SessionProjectPermissions _projectPermissions = new();
     private readonly bool _startHidden;
     private readonly DispatcherTimer _autoApplyTimer;
@@ -85,7 +86,9 @@ public partial class MainWindow : Window
         _autoApplyTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
         _autoApplyTimer.Tick += (_, _) => UpdateWriteUi();
         _autoApplyTimer.Start();
-        Loaded += async (_, _) => { await InitializeAsync(); UpdateOnboardingUi(); await CheckForUpdatesAsync(); };
+        _updateTimer.Tick += async (_, _) => await CheckForUpdatesAsync(manual: false);
+        _updateTimer.Start();
+        Loaded += async (_, _) => { await InitializeAsync(); UpdateOnboardingUi(); await CheckForUpdatesAsync(manual: false); };
         Closing += MainWindow_Closing;
         StateChanged += MainWindow_StateChanged;
     }
@@ -826,12 +829,20 @@ public partial class MainWindow : Window
     private static Version CurrentVersion
         => typeof(MainWindow).Assembly.GetName().Version ?? new Version(0, 0, 0);
 
-    private async Task CheckForUpdatesAsync()
+    /// <summary>自动检查失败时静默记录；手动检查在设置页显示结果。</summary>
+    private async Task CheckForUpdatesAsync(bool manual)
     {
-        if (!_settings.CheckForUpdates) return;
+        if (!manual && !_settings.CheckForUpdates) return;
+        CheckUpdateNowButton.IsEnabled = false;
+        if (manual) UpdateCheckResultText.Text = "正在检查…";
         try
         {
-            if (await new UpdateChecker().CheckAsync(CurrentVersion) is not { } update) return;
+            var update = await new UpdateChecker().CheckAsync(CurrentVersion);
+            await _logger.WriteAsync("info", $"update check: {(update is null ? "up to date" : update.Tag)}");
+            UpdateCheckResultText.Text = update is null
+                ? $"已是最新版本（{DateTime.Now:HH:mm} 检查）。"
+                : $"发现新版本 v{update.Version.ToString(3)}，见窗口顶部。";
+            if (update is null) return;
             _availableUpdate = update;
             UpdateBannerText.Text = $"新版本 v{update.Version.ToString(3)} 可用（当前 v{CurrentVersion.ToString(3)}）。";
             InstallUpdateButton.Visibility = update.CanInstall ? Visibility.Visible : Visibility.Collapsed;
@@ -839,10 +850,13 @@ public partial class MainWindow : Window
         }
         catch (Exception error)
         {
-            // 离线或 GitHub 不可达时静默跳过，不影响使用。
-            await _logger.WriteAsync("info", $"update check skipped: {error.GetType().Name}");
+            await _logger.WriteAsync("info", $"update check failed: {error.GetType().Name}: {error.Message}");
+            if (manual) UpdateCheckResultText.Text = "检查失败：无法连接 GitHub，请检查网络或代理后重试。";
         }
+        finally { CheckUpdateNowButton.IsEnabled = true; }
     }
+
+    private async void CheckUpdateNow_Click(object sender, RoutedEventArgs e) => await CheckForUpdatesAsync(manual: true);
 
     private void OpenUpdatePage_Click(object sender, RoutedEventArgs e)
         => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(_availableUpdate?.PageUrl ?? UpdateChecker.ReleasesPage) { UseShellExecute = true });
@@ -881,7 +895,7 @@ public partial class MainWindow : Window
         if (_initializingSettings) return;
         _settings.CheckForUpdates = CheckForUpdatesSetting.IsChecked == true;
         await _store.SaveAsync(_settings);
-        if (_settings.CheckForUpdates) await CheckForUpdatesAsync();
+        if (_settings.CheckForUpdates) await CheckForUpdatesAsync(manual: false);
         else UpdateBanner.Visibility = Visibility.Collapsed;
     }
 
@@ -1127,6 +1141,7 @@ public partial class MainWindow : Window
         await _logger.WriteAsync("info", "user requested application exit");
         _exiting = true;
         _autoApplyTimer.Stop();
+        _updateTimer.Stop();
         _writeService.RevokeAllAutoApply();
         await _controller.DisposeAsync();
         var persistedProfile = _store.LoadConnection();

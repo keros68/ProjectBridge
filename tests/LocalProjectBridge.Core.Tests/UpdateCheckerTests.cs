@@ -92,6 +92,35 @@ public sealed class UpdateCheckerTests
         finally { Directory.Delete(directory, recursive: true); }
     }
 
+    [Fact]
+    public void ParsesLatestRedirect()
+    {
+        var update = UpdateChecker.FromLatestRedirect("https://github.com/keros68/ProjectBridge/releases/tag/v0.1.7", new Version(0, 1, 6));
+        Assert.NotNull(update);
+        Assert.Equal(new Version(0, 1, 7), update.Version);
+        Assert.Equal("https://github.com/keros68/ProjectBridge/releases/download/v0.1.7/ProjectBridge-Setup.exe", update.SetupUrl);
+        Assert.Equal(update.SetupUrl + ".sha256", update.SetupHashUrl);
+        Assert.Null(UpdateChecker.FromLatestRedirect("https://github.com/keros68/ProjectBridge/releases/tag/v0.1.6", new Version(0, 1, 6)));
+        Assert.Throws<InvalidDataException>(() => UpdateChecker.FromLatestRedirect("https://github.com/keros68/ProjectBridge/releases", new Version(0, 1, 6)));
+    }
+
+    [Fact]
+    public async Task FallsBackToReleasePageWhenApiFails()
+    {
+        var api = new HttpClient(new StubHandler(new Dictionary<string, byte[]>()));
+        var redirect = new HttpClient(new RedirectHandler("https://github.com/keros68/ProjectBridge/releases/tag/v0.2.0"));
+        var update = await new UpdateChecker(api, redirect).CheckAsync(new Version(0, 1, 6));
+        Assert.NotNull(update);
+        Assert.Equal(new Version(0, 2, 0), update.Version);
+        Assert.True(update.CanInstall);
+    }
+
+    private sealed class RedirectHandler(string location) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            => Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.Found) { Headers = { Location = new Uri(location) } });
+    }
+
     private sealed class StubHandler(Dictionary<string, byte[]> responses) : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)

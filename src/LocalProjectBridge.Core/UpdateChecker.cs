@@ -13,23 +13,52 @@ public sealed class UpdateChecker
     public const string LatestReleaseApi = "https://api.github.com/repos/keros68/ProjectBridge/releases/latest";
     public const string ReleasesPage = "https://github.com/keros68/ProjectBridge/releases/latest";
     public const string SetupAssetName = "ProjectBridge-Setup.exe";
+    private const string DownloadBase = "https://github.com/keros68/ProjectBridge/releases/download/";
     private readonly HttpClient _http;
+    private readonly HttpClient _noRedirectHttp;
 
-    public UpdateChecker(HttpClient? http = null)
+    public UpdateChecker(HttpClient? http = null, HttpClient? noRedirectHttp = null)
     {
         _http = http ?? new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
+        _noRedirectHttp = noRedirectHttp ?? new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(20) };
     }
 
+    /// <summary>先查 GitHub API；API 不可达或限流时，改读 releases/latest 页面的跳转地址。两者都失败才抛出异常。</summary>
     public async Task<UpdateInfo?> CheckAsync(Version current, CancellationToken cancellationToken = default)
     {
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(TimeSpan.FromSeconds(10));
-        using var request = new HttpRequestMessage(HttpMethod.Get, LatestReleaseApi);
-        request.Headers.UserAgent.ParseAdd("ProjectBridge-UpdateCheck");
-        request.Headers.Accept.ParseAdd("application/vnd.github+json");
-        using var response = await _http.SendAsync(request, timeout.Token);
-        response.EnsureSuccessStatusCode();
-        return FindNewer(await response.Content.ReadAsStringAsync(timeout.Token), current);
+        try
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(TimeSpan.FromSeconds(15));
+            using var request = new HttpRequestMessage(HttpMethod.Get, LatestReleaseApi);
+            request.Headers.UserAgent.ParseAdd("ProjectBridge-UpdateCheck");
+            request.Headers.Accept.ParseAdd("application/vnd.github+json");
+            using var response = await _http.SendAsync(request, timeout.Token);
+            response.EnsureSuccessStatusCode();
+            return FindNewer(await response.Content.ReadAsStringAsync(timeout.Token), current);
+        }
+        catch (Exception error) when (error is HttpRequestException or TaskCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Head, ReleasesPage);
+            request.Headers.UserAgent.ParseAdd("ProjectBridge-UpdateCheck");
+            using var response = await _noRedirectHttp.SendAsync(request, cancellationToken);
+            var location = response.Headers.Location
+                ?? throw new HttpRequestException($"无法获取最新版本（{(int)response.StatusCode}）。", error);
+            return FromLatestRedirect(location.ToString(), current);
+        }
+    }
+
+    /// <summary>由 releases/latest 跳转到的 .../releases/tag/vX.Y.Z 推出版本和安装程序地址（发布约定的文件名）。</summary>
+    public static UpdateInfo? FromLatestRedirect(string location, Version current)
+    {
+        const string marker = "/releases/tag/";
+        var index = location.IndexOf(marker, StringComparison.Ordinal);
+        if (index < 0) throw new InvalidDataException("最新版本地址格式无效。");
+        var tag = Uri.UnescapeDataString(location[(index + marker.Length)..].Split('?', '#')[0].TrimEnd('/'));
+        if (!TryParseTag(tag, out var latest) || latest <= Normalize(current)) return null;
+        var page = location.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? location : "https://github.com" + location;
+        var setup = DownloadBase + Uri.EscapeDataString(tag) + "/" + SetupAssetName;
+        return new UpdateInfo(latest, tag, page, setup, setup + ".sha256");
     }
 
     public static UpdateInfo? FindNewer(string releaseJson, Version current)

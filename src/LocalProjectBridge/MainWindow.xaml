@@ -161,8 +161,12 @@
             </GroupBox>
             <GroupBox Header="更新">
               <StackPanel>
-                <CheckBox x:Name="CheckForUpdatesSetting" Content="启动时检查新版本" Checked="CheckForUpdatesSetting_Changed" Unchecked="CheckForUpdatesSetting_Changed" />
+                <CheckBox x:Name="CheckForUpdatesSetting" Content="自动检查新版本（启动时及每 6 小时）" Checked="CheckForUpdatesSetting_Changed" Unchecked="CheckForUpdatesSetting_Changed" />
                 <TextBlock x:Name="CurrentVersionText" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" FontSize="12" Margin="22,3,0,0" />
+                <StackPanel Orientation="Horizontal" Margin="22,10,0,0">
+                  <Button x:Name="CheckUpdateNowButton" Content="检查更新" Click="CheckUpdateNow_Click" />
+                  <TextBlock x:Name="UpdateCheckResultText" VerticalAlignment="Center" TextWrapping="Wrap" Margin="12,0,0,0" />
+                </StackPanel>
               </StackPanel>
             </GroupBox>
             <GroupBox Header="启动后自动连接">
