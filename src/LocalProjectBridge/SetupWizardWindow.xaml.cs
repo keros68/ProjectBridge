@@ -9,8 +9,6 @@ namespace LocalProjectBridge;
 
 public partial class SetupWizardWindow : Window
 {
-    private const string ChatGptDeveloperModeUrl = WebConnectionGuide.DeveloperSettingsUrl;
-    private const string ChatGptConnectorUrl = WebConnectionGuide.PluginsUrl;
     private readonly RegistryStore _store;
     private readonly BackendInstallerService _installer;
     private readonly C2cAdapter _c2c;
@@ -21,7 +19,6 @@ public partial class SetupWizardWindow : Window
     private readonly Func<ConnectionProfile, CancellationToken, Task> _completeStableConnection;
     public bool ConnectionTransferred { get; private set; }
     public ConnectionProfile? SavedConnectionProfile { get; private set; }
-    public Action<Window>? OpenPluginGuide { get; set; }
     private readonly bool _configurationOnly;
     private readonly CancellationTokenSource _lifetimeCancellation = new();
     private int _step = 1;
@@ -89,17 +86,6 @@ public partial class SetupWizardWindow : Window
         }
         Closing += SetupWizardWindow_Closing;
         _authorizationTimer.Tick += AuthorizationTimer_Tick;
-    }
-
-    private void OpenPluginGuide_Click(object sender, RoutedEventArgs e)
-    {
-        if (OpenPluginGuide is not null) { OpenPluginGuide(this); return; }
-        var guide = new WebConnectionGuide();
-        var profile = ConnectionProfileConfiguration.Clone(_connectionProfile);
-        profile.Provider = SecureProvider.IsChecked == true ? TunnelProvider.OpenAiSecureTunnel : TunnelProvider.CloudflareQuickTunnel;
-        profile.TunnelId = TunnelId.Text.Trim();
-        guide.Configure(profile, null, false, false);
-        guide.CreateHelpWindow(this).ShowDialog();
     }
 
     private async void NextButton_Click(object sender, RoutedEventArgs e)
@@ -171,8 +157,6 @@ public partial class SetupWizardWindow : Window
                 await _c2c.ChooseConnectionAsync(_c2c.ConnectionWorkspace, fixedDomain: false, domain: null, cancellationToken);
             var result = await StartSetupConnectionAsync(cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
-            ConnectorName.Text = result.ConnectorName;
-            ConnectorUrl.Text = result.McpUrl;
             SetupWebGuide.Configure(_connectionProfile, result.McpUrl, true, false,
                 () => _c2c.CreatePairingCodeAsync(_c2c.ConnectionWorkspace));
             SetupWebGuide.ShowPluginSetupOnly();
@@ -264,90 +248,13 @@ public partial class SetupWizardWindow : Window
         LaterButton.Content = step == 2 ? "关闭设置" : "稍后";
     }
 
-    private void OpenChatGpt_Click(object sender, RoutedEventArgs e)
-    {
-        Process.Start(new ProcessStartInfo(ChatGptConnectorUrl) { UseShellExecute = true });
-        System.Windows.MessageBox.Show(this,
-            "在 ChatGPT 页面新建连接：\n\n1. 名称：回到本窗口复制\n2. 服务器地址：回到本窗口复制\n3. 认证方式：选择 OAuth\n4. 点击连接或授权",
-            "添加连接",
-            MessageBoxButton.OK,
-            MessageBoxImage.Information);
-    }
-
-    private void OpenDeveloperMode_Click(object sender, RoutedEventArgs e)
-    {
-        Process.Start(new ProcessStartInfo(ChatGptDeveloperModeUrl) { UseShellExecute = true });
-        System.Windows.MessageBox.Show(this,
-            "在 ChatGPT 的安全设置中开启“开发人员模式”。完成后回到本窗口，勾选“已经开启开发人员模式”。",
-            "开启开发人员模式",
-            MessageBoxButton.OK,
-            MessageBoxImage.Information);
-    }
-
-    private void DeveloperModeReady_Checked(object sender, RoutedEventArgs e)
-    {
-        if (OpenConnectorButton is not null) OpenConnectorButton.IsEnabled = DeveloperModeReady.IsChecked == true;
-    }
+    private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
 
     private void OpenLink_RequestNavigate(object sender, RequestNavigateEventArgs e)
     {
         Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
         e.Handled = true;
     }
-
-    private void CopyName_Click(object sender, RoutedEventArgs e) => CopyText(ConnectorName.Text);
-    private void CopyUrl_Click(object sender, RoutedEventArgs e) => CopyText(ConnectorUrl.Text);
-    private void CopyPairing_Click(object sender, RoutedEventArgs e) => CopyText(PairingCodeText.Text);
-
-    private static void CopyText(string value)
-    {
-        if (!string.IsNullOrWhiteSpace(value)) System.Windows.Clipboard.SetText(value);
-    }
-
-    private async void CreatePairingCode_Click(object sender, RoutedEventArgs e)
-    {
-        WizardError.Text = string.Empty;
-        PairButton.IsEnabled = false;
-        try
-        {
-            await RunOperationAsync(async cancellationToken =>
-            {
-                var pairingCode = await _c2c.CreatePairingCodeAsync(_c2c.ConnectionWorkspace, cancellationToken);
-                cancellationToken.ThrowIfCancellationRequested();
-                PairingCodeText.Text = pairingCode;
-                CopyPairingButton.Visibility = Visibility.Visible;
-            });
-        }
-        catch (Exception error) { if (!_closing) WizardError.Text = error is OperationCanceledException ? "操作超时，请重试。" : error.Message; }
-        finally { if (!_closing) PairButton.IsEnabled = true; }
-    }
-
-    private void FixedConnection_Checked(object sender, RoutedEventArgs e)
-    {
-        if (DomainName is not null) DomainName.IsEnabled = FixedConnection.IsChecked == true;
-    }
-
-    private async void ApplyConnectionMode_Click(object sender, RoutedEventArgs e)
-    {
-        WizardError.Text = string.Empty;
-        try
-        {
-            await RunOperationAsync(async cancellationToken =>
-            {
-                await DisconnectSetupConnectionAsync();
-                await _c2c.ChooseConnectionAsync(_c2c.ConnectionWorkspace, FixedConnection.IsChecked == true, DomainName.Text, cancellationToken);
-                var result = await StartSetupConnectionAsync(cancellationToken);
-                cancellationToken.ThrowIfCancellationRequested();
-                ConnectorName.Text = result.ConnectorName;
-                ConnectorUrl.Text = result.McpUrl;
-                PairingCodeText.Text = string.Empty;
-                CopyPairingButton.Visibility = Visibility.Collapsed;
-            });
-        }
-        catch (Exception error) { if (!_closing) WizardError.Text = error is OperationCanceledException ? "操作超时，请重试。" : error.Message; }
-    }
-
-    private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
 
     private void CancelConnection_Click(object sender, RoutedEventArgs e)
     {

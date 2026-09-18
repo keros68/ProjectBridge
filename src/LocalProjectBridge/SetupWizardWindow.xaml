@@ -23,11 +23,7 @@
     <Grid>
       <StackPanel x:Name="ProjectPanel">
         <Border Background="#EEF4FF" CornerRadius="7" Padding="10" Margin="0,0,0,10">
-          <Grid>
-            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-            <TextBlock Text="首次使用按顺序完成：建立连接 → 连接 ChatGPT → 回首页添加项目并验证。" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0" />
-            <Button x:Name="PluginGuideButton" Grid.Column="1" Content="添加 ChatGPT 插件" Visibility="Collapsed" Style="{StaticResource PrimaryButton}" Click="OpenPluginGuide_Click" />
-          </Grid>
+          <TextBlock Text="首次使用按顺序完成：建立连接 → 连接 ChatGPT → 回首页添加项目并验证。" FontWeight="SemiBold" TextWrapping="Wrap" />
         </Border>
         <Grid>
           <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
@@ -118,50 +114,7 @@
         <TextBlock Text="按下面的统一引导完成开发人员模式、添加 ProjectBridge 和 OAuth 授权。" TextWrapping="Wrap" Foreground="#5F6672" Margin="0,7,0,12" />
         <local:WebConnectionGuide x:Name="SetupWebGuide" Margin="0,0,0,8" />
 
-        <Border Visibility="Collapsed" Background="White" BorderBrush="#D9DDE5" BorderThickness="1" CornerRadius="6" Padding="16">
-          <StackPanel>
-            <TextBlock Text="1. 开启开发人员模式" FontWeight="SemiBold" />
-            <TextBlock Text="首次连接需要开启一次，以后不用重复设置。" Foreground="#5F6672" Margin="0,6,0,0" />
-            <Button Content="打开模式设置" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Margin="0,9,0,8" Click="OpenDeveloperMode_Click" />
-            <CheckBox x:Name="DeveloperModeReady" Content="已经开启开发人员模式" Margin="0,0,0,16" Checked="DeveloperModeReady_Checked" Unchecked="DeveloperModeReady_Checked" />
-
-            <TextBlock Text="2. 添加连接" FontWeight="SemiBold" />
-            <Button x:Name="OpenConnectorButton" Content="打开添加连接页面" IsEnabled="False" HorizontalAlignment="Left" Margin="0,9,0,10" Click="OpenChatGpt_Click" />
-            <TextBlock Text="名称" Foreground="#68707D" Margin="0,9,0,4" />
-            <Grid>
-              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-              <TextBox x:Name="ConnectorName" IsReadOnly="True" />
-              <Button Grid.Column="1" Content="复制" Margin="10,0,0,0" Click="CopyName_Click" />
-            </Grid>
-            <TextBlock Text="服务器地址" Foreground="#68707D" Margin="0,10,0,4" />
-            <Grid>
-              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-              <TextBox x:Name="ConnectorUrl" IsReadOnly="True" />
-              <Button Grid.Column="1" Content="复制" Margin="10,0,0,0" Click="CopyUrl_Click" />
-            </Grid>
-            <TextBlock Text="认证方式选择 OAuth，然后确认。" Foreground="#5F6672" Margin="0,8,0,16" />
-
-            <TextBlock Text="3. 完成授权" FontWeight="SemiBold" />
-            <StackPanel Orientation="Horizontal" Margin="0,9,0,0">
-              <Button x:Name="PairButton" Content="生成配对码" Click="CreatePairingCode_Click" />
-              <TextBlock x:Name="PairingCodeText" FontSize="22" FontWeight="SemiBold" Margin="14,6,0,0" />
-              <Button x:Name="CopyPairingButton" Content="复制" Margin="12,0,0,0" Visibility="Collapsed" Click="CopyPairing_Click" />
-            </StackPanel>
-            <TextBlock Text="授权页面出现输入框后再生成。配对码不会保存。" Foreground="#5F6672" Margin="0,7,0,0" />
-          </StackPanel>
-        </Border>
-
-        <TextBlock Text="完成网页授权后会自动保留连接，无需再次勾选确认。" TextWrapping="Wrap" Foreground="#5F6672" Margin="0,16,0,0" />
-
-        <Expander Header="高级连接选项" Visibility="Collapsed" Margin="0,15,0,0">
-          <StackPanel Margin="0,10,0,0">
-            <TextBlock Text="临时连接免费使用，但地址变化后需要在 ChatGPT 中重新添加。固定连接需要 Cloudflare 账号和自己的域名。" TextWrapping="Wrap" Foreground="#5F6672" />
-            <RadioButton x:Name="QuickConnection" Content="临时连接" IsChecked="True" Margin="0,10,0,5" />
-            <RadioButton x:Name="FixedConnection" Content="固定连接" Margin="0,5" Checked="FixedConnection_Checked" Unchecked="FixedConnection_Checked" />
-            <TextBox x:Name="DomainName" IsEnabled="False" Margin="22,5,0,0" ToolTip="例如 example.com" />
-            <Button Content="应用连接方式" HorizontalAlignment="Left" Margin="22,10,0,0" Click="ApplyConnectionMode_Click" />
-          </StackPanel>
-        </Expander>
+        <TextBlock Text="完成网页授权后会自动保留连接，无需再次勾选确认。" TextWrapping="Wrap" Foreground="#5F6672" Margin="0,8,0,0" />
        </StackPanel>
       </StackPanel>
 

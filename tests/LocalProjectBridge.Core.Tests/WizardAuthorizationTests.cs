@@ -653,12 +653,6 @@ public sealed class WizardAuthorizationTests
         Assert.Equal("synthetic-key-for-ui-test", credentials.Secret);
         window.UpdateLayout();
         SaveRender(window, "settings-saved-key.png", 1.0);
-        var pluginButton = (System.Windows.Controls.Button)window.FindName("PluginGuideButton");
-        Assert.Equal(Visibility.Collapsed, pluginButton.Visibility);
-        Window? guideOwner = null;
-        window.OpenPluginGuide = owner => guideOwner = owner;
-        Invoke(window, "OpenPluginGuide_Click", window, new RoutedEventArgs());
-        Assert.Same(window, guideOwner);
         Assert.Equal("synthetic-key-for-ui-test", credentials.Secret);
         window.Close();
         await Task.Delay(30);
@@ -765,19 +759,6 @@ public sealed class WizardAuthorizationTests
         window.Show();
         window.UpdateLayout();
         SaveRender(window, "oauth-web-guide.png", 1.0);
-        var help = new WebConnectionGuide();
-        help.Configure(new ConnectionProfile { Provider = TunnelProvider.OpenAiSecureTunnel, TunnelId = "tunnel_guide_test" }, null, true, false);
-        var helpWindow = help.CreateHelpWindow(window);
-        helpWindow.WindowStartupLocation = WindowStartupLocation.Manual;
-        helpWindow.Left = -20000;
-        helpWindow.Top = -20000;
-        helpWindow.Show();
-        helpWindow.UpdateLayout();
-        var firstSteps = (System.Windows.Controls.Expander)help.FindName("FirstTimeSteps");
-        Assert.True(firstSteps.IsExpanded);
-        Assert.InRange(firstSteps.TranslatePoint(new Point(), helpWindow).Y, 0, 150);
-        SaveRender(helpWindow, "plugin-help-prominent.png", 1.0);
-        helpWindow.Close();
         window.Close();
     }
 

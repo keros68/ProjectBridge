@@ -48,28 +48,6 @@ public partial class WebConnectionGuide : UserControl
         FirstTimeFinalStep.Text = "3. 创建插件；快速体验按网页提示完成 OAuth 授权。完成后返回 ProjectBridge，先添加项目，再按新人任务卡完成真实读取验证。";
     }
 
-    public Window CreateHelpWindow(Window owner)
-    {
-        ShowSetupFirst();
-        var window = new Window
-        {
-            Title = "添加 ChatGPT 插件", Owner = owner, Width = 800, Height = 720,
-            MinWidth = 540, MinHeight = 400, MaxWidth = SystemParameters.WorkArea.Width,
-            MaxHeight = SystemParameters.WorkArea.Height, WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            ShowInTaskbar = false, Icon = owner.Icon
-        };
-        var panel = new DockPanel { Margin = new Thickness(20) };
-        var close = new System.Windows.Controls.Button { Content = "关闭", HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
-            Margin = new Thickness(0, 12, 0, 0) };
-        close.Click += (_, _) => window.Close();
-        DockPanel.SetDock(close, Dock.Bottom);
-        panel.Children.Add(close);
-        panel.Children.Add(new ScrollViewer { Content = this, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
-        window.Content = panel;
-        return window;
-    }
-
     public void Configure(ConnectionProfile profile, string? mcpUrl, bool ready, bool verified,
         Func<Task<string>>? createPairing = null)
     {

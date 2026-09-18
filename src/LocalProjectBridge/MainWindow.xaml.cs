@@ -478,12 +478,12 @@ public partial class MainWindow : Window
         if (!connectionReady || _controller.State != SessionState.Connected)
         {
             OnboardingActionButton.Content = "建立 / 恢复连接";
-            OnboardingHintText.Text = "先建立共享连接。首次使用建议选择临时 OAuth 连接。";
+            OnboardingHintText.Text = "先建立共享连接。首次使用建议选择“快速体验”。";
         }
         else if (!projectAdded)
         {
             OnboardingActionButton.Content = "去添加项目";
-            OnboardingHintText.Text = "在左侧点击“添加项目”，默认仅授权网页读取。";
+            OnboardingHintText.Text = "选择一个本地项目文件夹，默认仅授权网页读取。";
         }
         else
         {
@@ -505,7 +505,7 @@ public partial class MainWindow : Window
         if (project is null)
         {
             MainTabs.SelectedIndex = 0;
-            OnboardingHintText.Text = "请点击左侧“添加项目”，完成后再点击这里继续验证。";
+            AddProject_Click(sender, e);
             return;
         }
 
@@ -731,17 +731,6 @@ public partial class MainWindow : Window
                 (_, _) => Task.CompletedTask,
                 (_, _) => Task.CompletedTask,
                 configurationOnly: true) { Owner = this };
-            settingsWizard.OpenPluginGuide = owner =>
-            {
-                var guide = new WebConnectionGuide();
-                var readiness = _controller.Readiness;
-                var ready = _controller.State == SessionState.Connected && readiness.LocalReady && readiness.TransportReady;
-                var adapter = _c2c;
-                guide.Configure(_controller.CurrentConnection ?? _connectionProfile, adapter?.ObservedMcpUrl, ready,
-                    ready && readiness.ClientAuthorized && readiness.LastVerifiedCall is not null,
-                    adapter is null ? null : () => adapter.CreatePairingCodeAsync(adapter.ConnectionWorkspace));
-                guide.CreateHelpWindow(owner).ShowDialog();
-            };
             settingsWizard.ShowDialog();
             if (settingsWizard.SavedConnectionProfile is { } saved)
             {
