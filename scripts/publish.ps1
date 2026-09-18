@@ -8,11 +8,12 @@ param(
 
 $ErrorActionPreference = "Stop"
 $RepositoryRoot = Split-Path -Parent $PSScriptRoot
-$PublishRoot = Join-Path $RepositoryRoot "artifacts\$PackageName"
-$ArtifactsRoot = [IO.Path]::GetFullPath((Join-Path $RepositoryRoot "artifacts"))
+# 发布产物统一放在 dist\：dist\ProjectBridge\ 可直接运行，dist\ProjectBridge.zip 用于上传 Release。
+$PublishRoot = Join-Path $RepositoryRoot "dist\$PackageName"
+$ArtifactsRoot = [IO.Path]::GetFullPath((Join-Path $RepositoryRoot "dist"))
 $ResolvedPublishRoot = [IO.Path]::GetFullPath($PublishRoot)
 if (-not $ResolvedPublishRoot.StartsWith($ArtifactsRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
-    throw "发布目录不在 artifacts 内。"
+    throw "发布目录不在 dist 内。"
 }
 
 if (Test-Path -LiteralPath $ResolvedPublishRoot) { Remove-Item -LiteralPath $ResolvedPublishRoot -Recurse -Force }
@@ -20,19 +21,19 @@ New-Item -ItemType Directory -Path $PublishRoot -Force | Out-Null
 
 dotnet publish (Join-Path $RepositoryRoot "src\LocalProjectBridge\LocalProjectBridge.csproj") `
     -c Release -r $Runtime --self-contained true `
-    -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
+    -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -p:DebugSymbols=false `
     -o $PublishRoot
 if ($LASTEXITCODE -ne 0) { throw "ProjectBridge 发布失败。" }
 
 dotnet publish (Join-Path $RepositoryRoot "src\CodexShim\CodexShim.csproj") `
     -c Release -r $Runtime --self-contained true `
-    -p:PublishSingleFile=true `
+    -p:PublishSingleFile=true -p:DebugType=None -p:DebugSymbols=false `
     -o $PublishRoot
 if ($LASTEXITCODE -ne 0) { throw "Codex 启动组件发布失败。" }
 
 dotnet publish (Join-Path $RepositoryRoot "src\ProjectBridge.Relay\ProjectBridge.Relay.csproj") `
     -c Release -r $Runtime --self-contained true `
-    -p:PublishSingleFile=true `
+    -p:PublishSingleFile=true -p:DebugType=None -p:DebugSymbols=false `
     -o $PublishRoot
 if ($LASTEXITCODE -ne 0) { throw "本地协作助手发布失败。" }
 
@@ -167,7 +168,10 @@ if (-not $SkipBundle) {
             Remove-Item -LiteralPath $ResolvedVerificationRoot -Recurse -Force
         }
     }
+    $Hash = (Get-FileHash -LiteralPath $ArchivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+    Set-Content -LiteralPath "$ArchivePath.sha256" -Value "$Hash  $(Split-Path -Leaf $ArchivePath)" -Encoding ascii -NoNewline
     Write-Host "免安装包：$ArchivePath"
+    Write-Host "SHA256：$Hash"
 }
 
 Write-Host "发布完成：$PublishRoot"

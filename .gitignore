@@ -4,6 +4,7 @@ obj/
 *.user
 *.suo
 artifacts/
+dist/
 acceptance/
 TestResults/
 *.trx

@@ -34,6 +34,7 @@ public partial class MainWindow : Window
     private bool _suppressCapabilitySync;
     private bool _reloadingProjects;
     private bool _initializingSettings = true;
+    private string? _updatePageUrl;
     private readonly SessionProjectPermissions _projectPermissions = new();
     private readonly bool _startHidden;
     private readonly DispatcherTimer _autoApplyTimer;
@@ -70,6 +71,8 @@ public partial class MainWindow : Window
         InitializeCollaborationUi();
         StartWithWindowsSetting.IsChecked = StartupRegistration.IsEnabled();
         RestoreReadOnlyConnectionSetting.IsChecked = _settings.RestoreReadOnlyConnection;
+        CheckForUpdatesSetting.IsChecked = _settings.CheckForUpdates;
+        CurrentVersionText.Text = $"当前版本 v{CurrentVersion.ToString(3)}。有新版本时在窗口顶部提示，下载后解压覆盖即可，项目和连接设置保存在用户目录，不受影响。";
         _initializingSettings = false;
         _trayIcon = LoadTrayIcon();
         _tray = new Forms.NotifyIcon
@@ -84,7 +87,7 @@ public partial class MainWindow : Window
         _autoApplyTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
         _autoApplyTimer.Tick += (_, _) => UpdateWriteUi();
         _autoApplyTimer.Start();
-        Loaded += async (_, _) => { await InitializeAsync(); UpdateOnboardingUi(); };
+        Loaded += async (_, _) => { await InitializeAsync(); UpdateOnboardingUi(); await CheckForUpdatesAsync(); };
         Closing += MainWindow_Closing;
         StateChanged += MainWindow_StateChanged;
     }
@@ -820,6 +823,38 @@ public partial class MainWindow : Window
             StartWithWindowsSetting.IsChecked = StartupRegistration.IsEnabled();
             _initializingSettings = false;
         }
+    }
+
+    private static Version CurrentVersion
+        => typeof(MainWindow).Assembly.GetName().Version ?? new Version(0, 0, 0);
+
+    private async Task CheckForUpdatesAsync()
+    {
+        if (!_settings.CheckForUpdates) return;
+        try
+        {
+            if (await new UpdateChecker().CheckAsync(CurrentVersion) is not { } update) return;
+            _updatePageUrl = update.PageUrl;
+            UpdateBannerText.Text = $"新版本 v{update.Version.ToString(3)} 可用（当前 v{CurrentVersion.ToString(3)}）。";
+            UpdateBanner.Visibility = Visibility.Visible;
+        }
+        catch (Exception error)
+        {
+            // 离线或 GitHub 不可达时静默跳过，不影响使用。
+            await _logger.WriteAsync("info", $"update check skipped: {error.GetType().Name}");
+        }
+    }
+
+    private void OpenUpdatePage_Click(object sender, RoutedEventArgs e)
+        => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(_updatePageUrl ?? UpdateChecker.ReleasesPage) { UseShellExecute = true });
+
+    private async void CheckForUpdatesSetting_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_initializingSettings) return;
+        _settings.CheckForUpdates = CheckForUpdatesSetting.IsChecked == true;
+        await _store.SaveAsync(_settings);
+        if (_settings.CheckForUpdates) await CheckForUpdatesAsync();
+        else UpdateBanner.Visibility = Visibility.Collapsed;
     }
 
     private async void RestoreReadOnlyConnectionSetting_Changed(object sender, RoutedEventArgs e)

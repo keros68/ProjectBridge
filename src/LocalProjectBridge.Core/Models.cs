@@ -36,6 +36,7 @@ public sealed class AppSettings
     public string? SelectedProjectPath { get; set; }
     public bool StartWithWindows { get; set; }
     public bool RestoreReadOnlyConnection { get; set; }
+    public bool CheckForUpdates { get; set; } = true;
     public bool SetupCompleted { get; set; }
     public int ConnectionVersion { get; set; }
 

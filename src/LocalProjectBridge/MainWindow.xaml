@@ -19,6 +19,12 @@
       <StackPanel>
         <TextBlock Text="ProjectBridge" FontSize="25" FontWeight="SemiBold" />
         <TextBlock Text="一个连接，按项目权限提供文件读写和协作请求回复。" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" Margin="0,4,0,0" />
+        <Border x:Name="UpdateBanner" Visibility="Collapsed" Background="#FFF7E6" BorderBrush="#F2D29B" BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,8,0,0" HorizontalAlignment="Left">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock x:Name="UpdateBannerText" VerticalAlignment="Center" TextWrapping="Wrap" />
+            <Button Content="下载新版本" Margin="12,0,0,0" Click="OpenUpdatePage_Click" />
+          </StackPanel>
+        </Border>
       </StackPanel>
       <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="20,0,0,0">
         <Ellipse x:Name="StatusDot" Width="10" Height="10" Fill="#8A919E" Margin="0,1,9,0" />
@@ -148,6 +154,12 @@
               <StackPanel>
                 <CheckBox x:Name="StartWithWindowsSetting" Content="登录 Windows 时启动 ProjectBridge" Checked="StartWithWindowsSetting_Changed" Unchecked="StartWithWindowsSetting_Changed" />
                 <TextBlock Text="登录电脑后自动打开软件并进入托盘。是否自动连接，由下方开关决定。" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" FontSize="12" Margin="22,3,0,0" />
+              </StackPanel>
+            </GroupBox>
+            <GroupBox Header="更新">
+              <StackPanel>
+                <CheckBox x:Name="CheckForUpdatesSetting" Content="启动时检查新版本" Checked="CheckForUpdatesSetting_Changed" Unchecked="CheckForUpdatesSetting_Changed" />
+                <TextBlock x:Name="CurrentVersionText" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" FontSize="12" Margin="22,3,0,0" />
               </StackPanel>
             </GroupBox>
             <GroupBox Header="启动后自动连接">

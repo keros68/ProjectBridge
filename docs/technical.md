@@ -80,7 +80,7 @@ dotnet test LocalProjectBridge.slnx
 pwsh -NoProfile -File scripts\publish.ps1
 ```
 
-发布结果位于 `artifacts\ProjectBridge`，压缩包位于 `artifacts\ProjectBridge.zip`。
+发布结果位于 `dist\ProjectBridge`（可直接运行 `ProjectBridge.exe`），压缩包位于 `dist\ProjectBridge.zip`，校验值在同名 `.sha256` 文件中。`artifacts\` 只存放测试和验收的临时输出。
 
 ## 尚未实现
 

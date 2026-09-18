@@ -34,6 +34,8 @@ ProjectBridge 是 Windows 托盘程序。一个连接可访问多个本地项目
 
 从 [Releases](https://github.com/keros68/ProjectBridge/releases/latest) 下载 `ProjectBridge.zip`，解压到任意目录，运行 `ProjectBridge.exe`。程序免安装，卸载时直接删除目录。若 Windows 提示“已保护你的电脑”，点“更多信息”后选择“仍要运行”。
 
+程序启动时会检查新版本，有更新会在窗口顶部提示。下载新包后解压覆盖原目录即可；项目和连接设置保存在用户目录，不受影响。可在“设置 → 更新”中关闭检查。
+
 首次启动会打开设置向导。“登录 Windows 时启动”和“打开软件后自动连接”默认关闭，可以先不管。
 
 **3. 建立连接**
