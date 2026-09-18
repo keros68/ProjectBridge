@@ -128,14 +128,24 @@ if (-not $SkipBundle) {
 
     $ArchivePath = Join-Path (Split-Path -Parent $PublishRoot) "$PackageName.zip"
     if (Test-Path -LiteralPath $ArchivePath) { Remove-Item -LiteralPath $ArchivePath -Force }
-    & tar.exe -a -c -f $ArchivePath -C $PublishRoot .
-    if ($LASTEXITCODE -ne 0) { throw "创建免安装包失败。" }
+    Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction SilentlyContinue
+    [System.IO.Compression.ZipFile]::CreateFromDirectory(
+        $PublishRoot, $ArchivePath, [System.IO.Compression.CompressionLevel]::Optimal, $false)
+
+    # tar.exe 会把条目写成 "./ProjectBridge.exe"，Windows 资源管理器判定整个包无效。
+    $Archive = [System.IO.Compression.ZipFile]::OpenRead($ArchivePath)
+    try {
+        $BadEntry = $Archive.Entries |
+            Where-Object { $_.FullName.StartsWith("./") -or $_.FullName.Contains("\") } |
+            Select-Object -First 1
+        if ($BadEntry) { throw "免安装包条目名 `"$($BadEntry.FullName)`" 不合规，资源管理器无法提取。" }
+    }
+    finally { $Archive.Dispose() }
 
     $VerificationRoot = Join-Path $ArtifactsRoot ("verify-" + [guid]::NewGuid().ToString("N"))
     try {
         New-Item -ItemType Directory -Path $VerificationRoot -Force | Out-Null
-        & tar.exe -x -f $ArchivePath -C $VerificationRoot
-        if ($LASTEXITCODE -ne 0) { throw "解压免安装包失败。" }
+        [System.IO.Compression.ZipFile]::ExtractToDirectory($ArchivePath, $VerificationRoot)
 
         $ExtractedC2c = Join-Path $VerificationRoot "backends\codex-with-chatgpt"
         if (-not (Test-Path -LiteralPath (Join-Path $ExtractedC2c "node_modules\commander"))) {
