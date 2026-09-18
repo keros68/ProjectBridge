@@ -80,7 +80,7 @@ dotnet test LocalProjectBridge.slnx
 pwsh -NoProfile -File scripts\publish.ps1
 ```
 
-发布结果位于 `dist\ProjectBridge`（可直接运行 `ProjectBridge.exe`），压缩包位于 `dist\ProjectBridge.zip`，校验值在同名 `.sha256` 文件中。装有 Inno Setup 6 时还会生成安装程序 `dist\ProjectBridge-Setup.exe`（脚本在 `installer\ProjectBridge.iss`）。`artifacts\` 只存放测试和验收的临时输出。
+发布结果位于 `dist\ProjectBridge`（可直接运行 `ProjectBridge.exe`），压缩包位于 `dist\ProjectBridge.zip`，校验值在同名 `.sha256` 文件中。装有 Inno Setup 6 时还会生成安装程序 `dist\ProjectBridge-Setup.exe`（脚本在 `installer\ProjectBridge.iss`）。程序内“立即更新”依赖 Release 中的 `ProjectBridge-Setup.exe` 和 `ProjectBridge-Setup.exe.sha256`：校验通过后以 `/VERYSILENT /AUTOUPDATE=1 /DIR=<当前目录>` 启动安装程序并退出；安装程序最多等待 60 秒让旧版释放单实例锁，安装完成后重新启动程序。`artifacts\` 只存放测试和验收的临时输出。
 
 ## 尚未实现
 

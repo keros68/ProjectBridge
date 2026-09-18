@@ -22,7 +22,8 @@
         <Border x:Name="UpdateBanner" Visibility="Collapsed" Background="#FFF7E6" BorderBrush="#F2D29B" BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,8,0,0" HorizontalAlignment="Left">
           <StackPanel Orientation="Horizontal">
             <TextBlock x:Name="UpdateBannerText" VerticalAlignment="Center" TextWrapping="Wrap" />
-            <Button Content="下载新版本" Margin="12,0,0,0" Click="OpenUpdatePage_Click" />
+            <Button x:Name="InstallUpdateButton" Content="立即更新" Style="{StaticResource PrimaryButton}" Margin="12,0,0,0" Click="InstallUpdate_Click" />
+            <Button Content="查看更新说明" Margin="8,0,0,0" Click="OpenUpdatePage_Click" />
           </StackPanel>
         </Border>
       </StackPanel>

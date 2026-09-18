@@ -58,3 +58,26 @@ Name: "{autodesktop}\ProjectBridge"; Filename: "{app}\ProjectBridge.exe"; Tasks:
 
 [Run]
 Filename: "{app}\ProjectBridge.exe"; Description: "{cm:LaunchProgram,ProjectBridge}"; Flags: nowait postinstall skipifsilent
+; 程序内“立即更新”以 /VERYSILENT /AUTOUPDATE=1 调用，安装完成后自动重新启动。
+Filename: "{app}\ProjectBridge.exe"; Flags: nowait runasoriginaluser; Check: IsAutoUpdate
+
+[Code]
+function IsAutoUpdate: Boolean;
+begin
+  Result := ExpandConstant('{param:AUTOUPDATE|0}') = '1';
+end;
+
+// 自动更新时旧版正在退出（停止连接、收回授权），最多等 60 秒再替换文件。
+function InitializeSetup: Boolean;
+var
+  Waited: Integer;
+begin
+  Waited := 0;
+  if IsAutoUpdate then
+    while CheckForMutexes('Local\ProjectBridge.SingleInstance') and (Waited < 120) do
+    begin
+      Sleep(500);
+      Waited := Waited + 1;
+    end;
+  Result := True;
+end;

@@ -34,7 +34,7 @@ public partial class MainWindow : Window
     private bool _suppressCapabilitySync;
     private bool _reloadingProjects;
     private bool _initializingSettings = true;
-    private string? _updatePageUrl;
+    private UpdateInfo? _availableUpdate;
     private readonly SessionProjectPermissions _projectPermissions = new();
     private readonly bool _startHidden;
     private readonly DispatcherTimer _autoApplyTimer;
@@ -70,7 +70,7 @@ public partial class MainWindow : Window
         StartWithWindowsSetting.IsChecked = StartupRegistration.IsEnabled();
         RestoreReadOnlyConnectionSetting.IsChecked = _settings.RestoreReadOnlyConnection;
         CheckForUpdatesSetting.IsChecked = _settings.CheckForUpdates;
-        CurrentVersionText.Text = $"当前版本 v{CurrentVersion.ToString(3)}。有新版本时在窗口顶部提示；运行新安装程序即可升级（免安装版解压覆盖），项目和连接设置不受影响。";
+        CurrentVersionText.Text = $"当前版本 v{CurrentVersion.ToString(3)}。有新版本时在窗口顶部提示，点“立即更新”会下载并校验安装程序，自动退出、安装并重新启动；项目和连接设置不受影响。";
         _initializingSettings = false;
         _trayIcon = LoadTrayIcon();
         _tray = new Forms.NotifyIcon
@@ -832,8 +832,9 @@ public partial class MainWindow : Window
         try
         {
             if (await new UpdateChecker().CheckAsync(CurrentVersion) is not { } update) return;
-            _updatePageUrl = update.PageUrl;
+            _availableUpdate = update;
             UpdateBannerText.Text = $"新版本 v{update.Version.ToString(3)} 可用（当前 v{CurrentVersion.ToString(3)}）。";
+            InstallUpdateButton.Visibility = update.CanInstall ? Visibility.Visible : Visibility.Collapsed;
             UpdateBanner.Visibility = Visibility.Visible;
         }
         catch (Exception error)
@@ -844,7 +845,36 @@ public partial class MainWindow : Window
     }
 
     private void OpenUpdatePage_Click(object sender, RoutedEventArgs e)
-        => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(_updatePageUrl ?? UpdateChecker.ReleasesPage) { UseShellExecute = true });
+        => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(_availableUpdate?.PageUrl ?? UpdateChecker.ReleasesPage) { UseShellExecute = true });
+
+    /// <summary>下载并校验安装程序，静默安装到当前程序目录；安装程序等本程序退出后替换文件并重新启动。</summary>
+    private async void InstallUpdate_Click(object sender, RoutedEventArgs e)
+    {
+        if (_availableUpdate is not { CanInstall: true } update) return;
+        var appDirectory = Path.GetDirectoryName(Environment.ProcessPath)!;
+        InstallUpdateButton.IsEnabled = false;
+        try
+        {
+            UpdateBannerText.Text = "正在下载新版本…";
+            var progress = new Progress<int>(percent => UpdateBannerText.Text = $"正在下载新版本… {percent}%");
+            var installer = await new UpdateChecker().DownloadInstallerAsync(update,
+                Path.Combine(Path.GetTempPath(), "ProjectBridge-Update"), progress);
+            UpdateBannerText.Text = "下载完成，正在退出并安装新版本…";
+            await _logger.WriteAsync("info", $"installing update {update.Tag} into {appDirectory}");
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(installer)
+            {
+                ArgumentList = { "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/AUTOUPDATE=1", $"/DIR={appDirectory}" },
+                UseShellExecute = false
+            });
+            await ExitAsync();
+        }
+        catch (Exception error)
+        {
+            await _logger.WriteAsync("error", $"自动更新失败: {error.Message}");
+            UpdateBannerText.Text = $"自动更新失败：{error.Message} 可点击“查看更新说明”手动下载。";
+            InstallUpdateButton.IsEnabled = true;
+        }
+    }
 
     private async void CheckForUpdatesSetting_Changed(object sender, RoutedEventArgs e)
     {

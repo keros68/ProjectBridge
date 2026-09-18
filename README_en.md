@@ -36,7 +36,7 @@ Download `ProjectBridge-Setup.exe` from [Releases](https://github.com/keros68/Pr
 
 Prefer no installer? Download the portable `ProjectBridge.zip`, extract it, and run `ProjectBridge.exe`; delete the folder to remove it.
 
-On startup the app checks for a newer release and shows a notice at the top of the window. To update, run the new installer (or extract the portable package over the old folder); projects and connection settings live in your user profile and survive updates and uninstall. You can turn the check off under Settings → Updates.
+On startup the app checks for a newer release and shows a notice at the top of the window. Click "立即更新" (Update now): the app downloads and verifies the installer, exits, installs into its current folder, and restarts; the connection drops once during the update. Projects and connection settings live in your user profile and survive updates and uninstall. You can turn the check off under Settings → Updates.
 
 The setup wizard opens on first launch. Start on Windows login and auto-connect on launch are both off by default and can be left alone.
 
