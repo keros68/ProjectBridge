@@ -72,7 +72,7 @@ public partial class MainWindow : Window
         StartWithWindowsSetting.IsChecked = StartupRegistration.IsEnabled();
         RestoreReadOnlyConnectionSetting.IsChecked = _settings.RestoreReadOnlyConnection;
         CheckForUpdatesSetting.IsChecked = _settings.CheckForUpdates;
-        CurrentVersionText.Text = $"当前版本 v{CurrentVersion.ToString(3)}。有新版本时在窗口顶部提示，下载后解压覆盖即可，项目和连接设置保存在用户目录，不受影响。";
+        CurrentVersionText.Text = $"当前版本 v{CurrentVersion.ToString(3)}。有新版本时在窗口顶部提示；运行新安装程序即可升级（免安装版解压覆盖），项目和连接设置不受影响。";
         _initializingSettings = false;
         _trayIcon = LoadTrayIcon();
         _tray = new Forms.NotifyIcon

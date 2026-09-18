@@ -3,7 +3,7 @@
 ## 连接 ChatGPT
 
 1. 安装 [Node.js 长期支持版](https://nodejs.org/)。已安装可跳过。
-2. 从 GitHub Releases 下载并解压 `ProjectBridge.zip`，运行 `ProjectBridge.exe`。
+2. 从 GitHub Releases 下载 `ProjectBridge-Setup.exe` 并安装（或下载免安装版 `ProjectBridge.zip` 解压后运行 `ProjectBridge.exe`）。
 3. 点击“建立连接”，选择连接方式。首次使用建议选“快速体验”（OAuth 临时连接）；日常长期使用可选“长期使用”（OpenAI Secure Tunnel）。项目仍在首页单独添加和授权。
 4. OpenAI Secure Tunnel 需要已有 Tunnel ID，以及具有 Tunnels Read + Use 权限的运行密钥。向导提供官方创建入口；粘贴的密钥保存到当前 Windows 用户的凭据管理器。也可在高级选项中使用环境变量或密钥文件。
 5. 通道就绪后，首次设置窗口直接显示统一的 ChatGPT 引导：开启开发人员模式、添加 ProjectBridge。固定入口选择 Tunnel ID 和“无身份验证”；快速体验填写当前 HTTPS 地址并完成 OAuth 授权。

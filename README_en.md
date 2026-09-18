@@ -32,9 +32,11 @@ Download the LTS release from [nodejs.org](https://nodejs.org/) and install it w
 
 **2. Download and run**
 
-Download `ProjectBridge.zip` from [Releases](https://github.com/keros68/ProjectBridge/releases/latest), extract it anywhere, and run `ProjectBridge.exe`. Nothing is installed; to remove it, delete the folder. If Windows shows a "protected your PC" prompt, choose "More info" then "Run anyway".
+Download `ProjectBridge-Setup.exe` from [Releases](https://github.com/keros68/ProjectBridge/releases/latest) and run it (no administrator rights needed; it adds a Start menu shortcut). If Windows shows a "protected your PC" prompt, choose "More info" then "Run anyway".
 
-On startup the app checks for a newer release and shows a notice at the top of the window. To update, extract the new package over the old folder; projects and connection settings live in your user profile and are kept. You can turn the check off under Settings → Updates.
+Prefer no installer? Download the portable `ProjectBridge.zip`, extract it, and run `ProjectBridge.exe`; delete the folder to remove it.
+
+On startup the app checks for a newer release and shows a notice at the top of the window. To update, run the new installer (or extract the portable package over the old folder); projects and connection settings live in your user profile and survive updates and uninstall. You can turn the check off under Settings → Updates.
 
 The setup wizard opens on first launch. Start on Windows login and auto-connect on launch are both off by default and can be left alone.
 

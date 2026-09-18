@@ -172,6 +172,23 @@ if (-not $SkipBundle) {
     Set-Content -LiteralPath "$ArchivePath.sha256" -Value "$Hash  $(Split-Path -Leaf $ArchivePath)" -Encoding ascii -NoNewline
     Write-Host "免安装包：$ArchivePath"
     Write-Host "SHA256：$Hash"
+
+    # 安装程序：需要 Inno Setup 6（winget install JRSoftware.InnoSetup）；未安装时只输出免安装包。
+    $Iscc = @(
+        (Join-Path $env:LOCALAPPDATA "Programs\Inno Setup 6\ISCC.exe"),
+        (Join-Path ${env:ProgramFiles(x86)} "Inno Setup 6\ISCC.exe"),
+        (Join-Path $env:ProgramFiles "Inno Setup 6\ISCC.exe")
+    ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -First 1
+    if ($Iscc) {
+        $AppVersion = ([xml](Get-Content -LiteralPath (Join-Path $RepositoryRoot "Directory.Build.props") -Raw)).Project.PropertyGroup.Version
+        & $Iscc /Q "/DAppVersion=$AppVersion" "/DSourceDir=$ResolvedPublishRoot" "/DOutputDir=$ArtifactsRoot" (Join-Path $RepositoryRoot "installer\ProjectBridge.iss")
+        if ($LASTEXITCODE -ne 0) { throw "生成安装程序失败。" }
+        $SetupPath = Join-Path $ArtifactsRoot "ProjectBridge-Setup.exe"
+        $SetupHash = (Get-FileHash -LiteralPath $SetupPath -Algorithm SHA256).Hash.ToLowerInvariant()
+        Set-Content -LiteralPath "$SetupPath.sha256" -Value "$SetupHash  ProjectBridge-Setup.exe" -Encoding ascii -NoNewline
+        Write-Host "安装程序：$SetupPath"
+    }
+    else { Write-Warning "未找到 Inno Setup 6，跳过安装程序。" }
 }
 
 Write-Host "发布完成：$PublishRoot"
