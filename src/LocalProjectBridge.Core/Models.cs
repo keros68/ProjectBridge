@@ -18,6 +18,9 @@ public sealed class ProjectRecord
     /// <summary>Codex 向绑定的 ChatGPT 对话请求规划或复核。</summary>
     public bool AllowCodexAskWeb { get; set; } = true;
 
+    /// <summary>用户为此项目关闭了默认开启的 YOLO；网页修改改为逐次本机确认。</summary>
+    public bool AutoApplyOptOut { get; set; }
+
     public DateTimeOffset? LastConnectedAt { get; set; }
     public DateTimeOffset? LastAccessedAt { get; set; }
     public string? LastFault { get; set; }

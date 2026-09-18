@@ -39,8 +39,6 @@ public partial class MainWindow : Window
     private readonly bool _startHidden;
     private readonly DispatcherTimer _autoApplyTimer;
     private bool _suppressAutoApplyUi;
-    private Guid? _autoApplyDurationProjectId;
-    private int _pendingAutoApplyMinutes = 120;
 
     public MainWindow(bool startHidden = false)
     {
@@ -881,69 +879,36 @@ public partial class MainWindow : Window
     private string? CurrentWriteClient()
         => _controller.State == SessionState.Connected ? _controller.Readiness.ClientIdentity : null;
 
-    private TimeSpan SelectedAutoApplyDuration()
-    {
-        if (AutoApplyDuration.SelectedItem is System.Windows.Controls.ComboBoxItem item
-            && int.TryParse(item.Tag?.ToString(), out var minutes)
-            && minutes is 15 or 30 or 60 or 120)
-            return TimeSpan.FromMinutes(minutes);
-        return TimeSpan.FromMinutes(120);
-    }
+    // WriteLeaseStore 上限为两小时；到期后由 UpdateWriteUi 的定时刷新自动续期。
+    private static readonly TimeSpan AutoApplyLeaseDuration = TimeSpan.FromHours(2);
 
-    private void SelectAutoApplyDuration(WriteLease? lease)
-    {
-        var minutes = lease is null
-            ? _pendingAutoApplyMinutes
-            : (int)Math.Round((lease.ExpiresAt - lease.GrantedAt).TotalMinutes);
-        var match = AutoApplyDuration.Items.OfType<System.Windows.Controls.ComboBoxItem>()
-            .FirstOrDefault(item => int.TryParse(item.Tag?.ToString(), out var value) && value == minutes);
-        AutoApplyDuration.SelectedItem = match ?? AutoApplyDuration.Items[3];
-    }
-
-    private void AutoApply_Changed(object sender, RoutedEventArgs e)
+    private async void AutoApply_Changed(object sender, RoutedEventArgs e)
     {
         if (_initializingSettings || _suppressAutoApplyUi) return;
-        var project = ProjectPicker.SelectedItem as ProjectRecord;
-        var clientId = CurrentWriteClient();
-        try
-        {
-            if (AutoApplyToggle.IsChecked == true)
-            {
-                if (project is null || !project.AllowWebRead || string.IsNullOrWhiteSpace(clientId))
-                    throw new InvalidOperationException("请先选择已授权项目，并从网页完成一次真实项目读取。");
-                _writeService.GrantAutoApply(project.Id, _connectionProfile.Id, clientId,
-                    SelectedAutoApplyDuration());
-            }
-            else if (project is not null)
-            {
-                _writeService.RevokeAutoApply(project.Id);
-            }
-        }
-        catch (Exception error)
-        {
-            ShowError("无法更新 YOLO 写入模式。", "确认项目权限和网页连接主体后重试。", error.Message);
-        }
+        if (ProjectPicker.SelectedItem is not ProjectRecord project) return;
+        project.AutoApplyOptOut = AutoApplyToggle.IsChecked != true;
+        if (project.AutoApplyOptOut) _writeService.RevokeAutoApply(project.Id);
         UpdateWriteUi();
+        try { await _store.SaveAsync(_settings); }
+        catch (Exception error) { await _logger.WriteAsync("error", $"保存 YOLO 设置失败: {error.Message}"); }
     }
 
-    private void AutoApplyDuration_SelectionChanged(object sender,
-        System.Windows.Controls.SelectionChangedEventArgs e)
+    /// <summary>YOLO 默认开启：为每个已授权网页读取、未单独关闭的项目，给当前已验证主体授予或续期写入授权。</summary>
+    private void EnsureDefaultAutoApply(string clientId)
     {
-        if (_initializingSettings || _suppressAutoApplyUi) return;
-        _pendingAutoApplyMinutes = (int)SelectedAutoApplyDuration().TotalMinutes;
-        if (AutoApplyToggle.IsChecked == true) AutoApply_Changed(sender, e);
-        else UpdateWriteUi();
+        foreach (var project in _settings.Projects.Where(p => p.AllowWebRead && !p.AutoApplyOptOut && Directory.Exists(p.Path)))
+        {
+            if (_writeService.GetAutoApplyLease(project.Id, _connectionProfile.Id, clientId) is not null) continue;
+            try { _writeService.GrantAutoApply(project.Id, _connectionProfile.Id, clientId, AutoApplyLeaseDuration); }
+            catch (Exception error) { _ = _logger.WriteAsync("error", $"YOLO 授权失败（{project.Name}）: {error.Message}"); }
+        }
     }
 
     private void UpdateWriteUi()
     {
         var project = ProjectPicker.SelectedItem as ProjectRecord;
         var clientId = CurrentWriteClient();
-        if (_autoApplyDurationProjectId != project?.Id)
-        {
-            _autoApplyDurationProjectId = project?.Id;
-            _pendingAutoApplyMinutes = 120;
-        }
+        if (!string.IsNullOrWhiteSpace(clientId)) EnsureDefaultAutoApply(clientId);
         var eligible = project is { AllowWebRead: true } && !string.IsNullOrWhiteSpace(clientId);
         var lease = eligible
             ? _writeService.GetAutoApplyLease(project!.Id, _connectionProfile.Id, clientId)
@@ -953,29 +918,25 @@ public partial class MainWindow : Window
             ? "连接主体：等待网页调用确认"
             : $"连接主体：{clientId}";
         WriteLeaseStatusText.Text = clientId is null
-            ? "先在 ChatGPT 中完成一次项目读取；验证后可提交修改预览。"
+            ? "先在 ChatGPT 中完成一次项目读取；验证后网页修改按下方模式处理。"
             : lease is not null
                 ? "YOLO 写入模式已开启。"
-                : "默认本机确认模式：网页可提交修改预览，文件修改与恢复需逐次确认。";
+                : "本机确认模式：网页可提交修改预览，文件修改与恢复需逐次确认。";
 
         _suppressAutoApplyUi = true;
-        AutoApplyToggle.IsEnabled = eligible;
-        AutoApplyDuration.IsEnabled = eligible;
-        AutoApplyToggle.IsChecked = lease is not null;
-        if (lease is not null)
-            _pendingAutoApplyMinutes = (int)Math.Round((lease.ExpiresAt - lease.GrantedAt).TotalMinutes);
-        SelectAutoApplyDuration(lease);
+        AutoApplyToggle.IsEnabled = project is { AllowWebRead: true };
+        AutoApplyToggle.IsChecked = project is { AllowWebRead: true, AutoApplyOptOut: false };
         AutoApplyScopeText.Visibility = _connectionProfile.Provider == TunnelProvider.OpenAiSecureTunnel
             ? Visibility.Visible : Visibility.Collapsed;
         AutoApplyStatusText.Text = project is null
             ? "请选择项目。"
             : !project.AllowWebRead
                 ? "当前项目未授权网页读取，不能开启。"
-                : clientId is null
-                    ? "等待已验证的网页连接主体。"
-                    : lease is null
-                        ? $"当前项目未开启；选择时长 {_pendingAutoApplyMinutes} 分钟。"
-                        : $"当前项目已开启，到期时间：{lease.ExpiresAt.ToLocalTime():yyyy-MM-dd HH:mm:ss}。";
+                : project.AutoApplyOptOut
+                    ? "此项目已关闭 YOLO，网页修改需在本机确认。"
+                    : clientId is null
+                        ? "网页连接验证后自动生效。"
+                        : "已生效，网页修改直接应用。";
         _suppressAutoApplyUi = false;
     }
 

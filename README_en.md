@@ -17,7 +17,7 @@ Comparable open-source setups usually require downloading the backends separatel
 ## Features
 
 - **Multi-project access**: ChatGPT can list directories, read and search files, and view Git diffs. Switching projects does not require reconnecting.
-- **Web edits**: Changes proposed by ChatGPT are shown as a preview and written after local confirmation, with automatic backups and restore. With time-limited YOLO mode enabled, changes are written directly.
+- **Web edits**: YOLO mode is on by default, so changes from ChatGPT are written directly, with automatic backups and restore. You can turn it off per project to review a preview and confirm locally instead.
 - **Codex delegation**: ChatGPT can hand development tasks to local Codex, check their progress, or stop them.
 - **Local and web collaboration**: While running a task, Codex can ask ChatGPT to plan an approach or review changes.
 - **Two connection modes**: OpenAI Secure Tunnel provides a fixed endpoint; the temporary OAuth connection needs no extra account setup.
@@ -85,7 +85,7 @@ See the [user guide](docs/guide.md) for full steps, YOLO mode, Codex delegation,
 
 - Each project is authorized separately. After revoking access, disconnecting, or exiting, web requests are rejected.
 - `.env` files, private keys, cloud credentials, and Git credentials cannot be read or modified. Paths cannot leave the project directory.
-- YOLO mode and Codex write access must be enabled manually for each connection and are not restored automatically.
+- YOLO mode is on by default: it takes effect for web-readable projects once the web connection is verified and is revoked on disconnect or exit. Untick it on the Edit tab to require local confirmation for a project; the choice is remembered. Codex write access must be enabled manually for each connection.
 - Writable Codex tasks modify files directly, without preview, backup, or sensitive-file rules. Commit or back up the project first.
 - Runtime keys are stored in Windows Credential Manager. Logs redact tokens and API keys.
 

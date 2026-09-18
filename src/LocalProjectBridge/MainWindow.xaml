@@ -26,13 +26,13 @@
           </StackPanel>
         </Border>
       </StackPanel>
-      <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="20,0,0,0">
-        <Ellipse x:Name="StatusDot" Width="10" Height="10" Fill="#8A919E" Margin="0,1,9,0" />
-        <StackPanel>
-          <TextBlock x:Name="StatusText" Text="未连接" FontWeight="SemiBold" HorizontalAlignment="Right" />
-          <TextBlock x:Name="HeaderRecentAccess" Text="本次网页访问：尚无" Foreground="{StaticResource MutedTextBrush}" FontSize="12" HorizontalAlignment="Right" />
-          <Button x:Name="HeaderWebGuideButton" Content="添加插件 / 验证连接" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Margin="0,8,0,0" Click="ShowWebGuide_Click" />
+      <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="20,0,0,0">
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+          <Ellipse x:Name="StatusDot" Width="9" Height="9" Fill="#8A919E" VerticalAlignment="Center" Margin="0,1,8,0" />
+          <TextBlock x:Name="StatusText" Text="未连接" FontWeight="SemiBold" />
         </StackPanel>
+        <TextBlock x:Name="HeaderRecentAccess" Text="本次网页访问：尚无" Foreground="{StaticResource MutedTextBrush}" FontSize="12" HorizontalAlignment="Right" />
+        <Button x:Name="HeaderWebGuideButton" Content="添加插件 / 验证连接" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Margin="0,8,0,0" Click="ShowWebGuide_Click" />
       </StackPanel>
     </Grid>
 
@@ -48,7 +48,9 @@
           <Grid>
             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
             <TextBlock Text="已授权项目" FontWeight="SemiBold" Margin="2,0,0,8" />
-            <ListBox x:Name="ProjectPicker" Grid.Row="1" DisplayMemberPath="Name" SelectionChanged="ProjectPicker_SelectionChanged" />
+            <ListBox x:Name="ProjectPicker" Grid.Row="1" ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionChanged="ProjectPicker_SelectionChanged">
+                  <ListBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}" /></DataTemplate></ListBox.ItemTemplate>
+                </ListBox>
             <StackPanel Grid.Row="2" Margin="0,10,0,0">
               <Button x:Name="AddProjectButton" Content="添加项目" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Stretch" Click="AddProject_Click" />
               <Button x:Name="RemoveProjectButton" Content="移除项目" HorizontalAlignment="Stretch" Margin="0,8,0,0" Click="RemoveProject_Click" />
@@ -165,7 +167,7 @@
             <GroupBox Header="启动后自动连接">
               <StackPanel>
                 <CheckBox x:Name="RestoreReadOnlyConnectionSetting" Content="打开软件后自动连接（只读）" Checked="RestoreReadOnlyConnectionSetting_Changed" Unchecked="RestoreReadOnlyConnectionSetting_Changed" />
-                <TextBlock Text="复用已保存的连接，供网页读取已授权项目，省去点击“建立连接”。YOLO 需手动开启；两个开关都勾选可在登录电脑后自动连接。" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" FontSize="12" Margin="22,3,0,0" />
+                <TextBlock Text="复用已保存的连接，供网页读取已授权项目，省去点击“建立连接”。两个开关都勾选可在登录电脑后自动连接。" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" FontSize="12" Margin="22,3,0,0" />
               </StackPanel>
             </GroupBox>
             <GroupBox Header="Codex 自动协作">
@@ -176,7 +178,7 @@
               </StackPanel>
             </GroupBox>
             <GroupBox Header="当前版本能力">
-              <TextBlock Text="网页可读取项目并提交修改预览；每个项目可选择本机确认，或为当前已验证连接限时开启 YOLO 自动应用。Codex 可通过配套 Skill 在绑定的 ChatGPT 对话中取得规划与复核。" TextWrapping="Wrap" />
+              <TextBlock Text="网页可读取项目并提交修改预览；YOLO 自动应用默认开启，可按项目改为本机逐次确认。Codex 可通过配套 Skill 在绑定的 ChatGPT 对话中取得规划与复核。" TextWrapping="Wrap" />
             </GroupBox>
           </StackPanel>
         </ScrollViewer>
@@ -191,23 +193,13 @@
                 <TextBlock x:Name="WriteProjectText" TextWrapping="Wrap" />
                 <TextBlock x:Name="WriteClientText" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" Margin="0,6,0,0" />
                 <TextBlock x:Name="WriteLeaseStatusText" TextWrapping="Wrap" Margin="0,8,0,0" />
-                <WrapPanel Margin="0,10,0,0">
-                  <CheckBox x:Name="AutoApplyToggle" Content="YOLO：网页修改自动应用" VerticalAlignment="Center"
-                            Checked="AutoApply_Changed" Unchecked="AutoApply_Changed" />
-                  <TextBlock Text="有效期" VerticalAlignment="Center" Margin="18,0,6,0" />
-                  <ComboBox x:Name="AutoApplyDuration" Width="96" SelectedIndex="3"
-                            SelectionChanged="AutoApplyDuration_SelectionChanged">
-                    <ComboBoxItem Content="15 分钟" Tag="15" />
-                    <ComboBoxItem Content="30 分钟" Tag="30" />
-                    <ComboBoxItem Content="60 分钟" Tag="60" />
-                    <ComboBoxItem Content="120 分钟" Tag="120" />
-                  </ComboBox>
-                </WrapPanel>
-                <TextBlock x:Name="AutoApplyStatusText" TextWrapping="Wrap" Margin="22,6,0,0" />
+                <CheckBox x:Name="AutoApplyToggle" Content="YOLO：网页修改自动应用" Margin="0,10,0,0"
+                          Checked="AutoApply_Changed" Unchecked="AutoApply_Changed" />
+                <TextBlock x:Name="AutoApplyStatusText" TextWrapping="Wrap" FontSize="12" Margin="22,2,0,0" />
+                <TextBlock Text="默认开启：网页对此项目的修改与恢复直接应用，包括补丁、新建、重命名和删除，每次修改都留有恢复资料。取消勾选后改为逐次本机确认，并记住此项目的选择。断开或退出时收回授权。"
+                           TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" FontSize="12" Margin="22,4,0,0" />
                 <TextBlock x:Name="AutoApplyScopeText" Text="固定 Tunnel 的可访问者共用此授权。" TextWrapping="Wrap"
                            Foreground="{StaticResource MutedTextBrush}" FontSize="12" Margin="22,4,0,0" />
-                <TextBlock Text="默认关闭。开启后，此项目在当前已验证连接中的文件修改与恢复免逐次确认，包括补丁、新建、重命名和删除；到期、断开或退出即关闭。"
-                           TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" FontSize="12" Margin="0,6,0,0" />
               </StackPanel>
             </GroupBox>
 
@@ -215,7 +207,9 @@
               <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="240"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                 <Grid.RowDefinitions><RowDefinition Height="160"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                <ListBox x:Name="ChangeList" DisplayMemberPath="DisplaySummary" SelectionChanged="ChangeList_SelectionChanged" />
+                <ListBox x:Name="ChangeList" ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionChanged="ChangeList_SelectionChanged">
+                  <ListBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding DisplaySummary}" TextTrimming="CharacterEllipsis" ToolTip="{Binding DisplaySummary}" /></DataTemplate></ListBox.ItemTemplate>
+                </ListBox>
                 <Grid Grid.Column="2">
                   <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                   <TextBox x:Name="ChangePreviewText" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
@@ -251,7 +245,9 @@
               <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="190" MinWidth="130" /><ColumnDefinition Width="12" /><ColumnDefinition Width="*" MinWidth="220" /></Grid.ColumnDefinitions>
                 <Grid.RowDefinitions><RowDefinition Height="280" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                <ListBox x:Name="CollaborationRequestList" DisplayMemberPath="DisplaySummary" SelectionChanged="CollaborationRequestList_SelectionChanged" />
+                <ListBox x:Name="CollaborationRequestList" ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionChanged="CollaborationRequestList_SelectionChanged">
+                  <ListBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding DisplaySummary}" TextTrimming="CharacterEllipsis" ToolTip="{Binding DisplaySummary}" /></DataTemplate></ListBox.ItemTemplate>
+                </ListBox>
                 <Grid Grid.Column="2">
                   <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                   <TextBlock x:Name="CollaborationStatusText" FontWeight="SemiBold" TextWrapping="Wrap" />

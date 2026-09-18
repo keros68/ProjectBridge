@@ -43,9 +43,7 @@
           <StackPanel>
             <RadioButton x:Name="QuickProvider" GroupName="ConnectionProvider" Content="快速体验（推荐首次使用）" IsChecked="True" Checked="ConnectionProvider_Checked" />
             <TextBlock Foreground="#5F6672" Margin="22,3,0,0" TextWrapping="Wrap">
-              <Run Text="无需额外 Tunnel 配置；重启后地址可能变化。需要 Node.js，" />
-              <Hyperlink NavigateUri="https://nodejs.org/" RequestNavigate="OpenLink_RequestNavigate">下载</Hyperlink>
-              <Run Text="。" />
+              <Run Text="无需额外 Tunnel 配置；重启后地址可能变化。需要 Node.js（" /><Hyperlink NavigateUri="https://nodejs.org/" RequestNavigate="OpenLink_RequestNavigate">下载</Hyperlink><Run Text="）。" />
             </TextBlock>
           </StackPanel>
           <StackPanel Grid.Column="2">
@@ -86,8 +84,8 @@
             </Grid>
             <Grid Margin="0,7,0,0">
               <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-              <TextBlock x:Name="RuntimeKeyStatus" Text="尚未保存运行密钥。" TextWrapping="Wrap" Foreground="#5F6672" />
-              <TextBlock Grid.Column="1" Text="保存到当前 Windows 用户的凭据管理器，配置文件不保存密钥。" TextWrapping="Wrap" Foreground="#5F6672" Margin="12,0,0,0" />
+              <TextBlock x:Name="RuntimeKeyStatus" Text="尚未保存运行密钥。" TextWrapping="Wrap" FontWeight="SemiBold" Foreground="#5F6672" />
+              <TextBlock Grid.Column="1" Text="密钥保存到当前 Windows 用户的凭据管理器，配置文件不保存密钥。" TextWrapping="Wrap" Foreground="#5F6672" Margin="10,0,0,0" />
             </Grid>
             <Expander Header="高级：使用已有密钥配置" Margin="0,7,0,0">
               <StackPanel Margin="0,7,0,0">

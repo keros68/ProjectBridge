@@ -402,13 +402,12 @@ public sealed class WizardAuthorizationTests
         main.Height = 720;
         main.UpdateLayout();
         var autoApplyToggle = (System.Windows.Controls.CheckBox)main.FindName("AutoApplyToggle");
-        var autoApplyDuration = (System.Windows.Controls.ComboBox)main.FindName("AutoApplyDuration");
         var autoApplyStatus = (System.Windows.Controls.TextBlock)main.FindName("AutoApplyStatusText");
         var autoApplyScope = (System.Windows.Controls.TextBlock)main.FindName("AutoApplyScopeText");
         Assert.Equal(Visibility.Visible, autoApplyScope.Visibility);
         Assert.Contains("固定 Tunnel", autoApplyScope.Text);
-        Assert.False(autoApplyToggle.IsEnabled, "YOLO enabled before a web client was verified");
-        Assert.False(autoApplyToggle.IsChecked == true);
+        Assert.True(autoApplyToggle.IsChecked == true, "YOLO should default to on for a web-readable project");
+        Assert.Contains("验证后自动生效", autoApplyStatus.Text);
         var applyWrite = (System.Windows.Controls.Button)main.FindName("ApplyChangeButton");
         var restoreWrite = (System.Windows.Controls.Button)main.FindName("RestoreChangeButton");
         Assert.False(applyWrite.IsEnabled, "apply enabled without a prepared change");
@@ -421,23 +420,17 @@ public sealed class WizardAuthorizationTests
         typeof(SessionController).GetProperty(nameof(SessionController.Readiness))!.SetValue(controller, verifiedClient);
         type.GetMethod("ApplyReadinessToUi", flags)!.Invoke(main, [verifiedClient]);
         Assert.Contains("已连接，网页已验证", tray.Text);
-        type.GetMethod("UpdateWriteUi", flags)!.Invoke(main, null);
-        Assert.True(autoApplyToggle.IsEnabled);
-        Assert.False(autoApplyToggle.IsChecked == true);
-        Assert.Equal(3, autoApplyDuration.SelectedIndex);
-        Assert.Contains("选择时长 120 分钟", autoApplyStatus.Text);
-
         var writeService = (ProjectWriteService)type.GetField("_writeService", flags)!.GetValue(main)!;
         var activeConnection = (ConnectionProfile)type.GetField("_connectionProfile", flags)!.GetValue(main)!;
-        autoApplyDuration.SelectedIndex = 0;
+        Assert.Null(writeService.GetAutoApplyLease(a.Id, activeConnection.Id, "web-ui-test"));
         type.GetMethod("UpdateWriteUi", flags)!.Invoke(main, null);
-        Assert.Equal(0, autoApplyDuration.SelectedIndex);
-        Assert.Contains("选择时长 15 分钟", autoApplyStatus.Text);
-        autoApplyToggle.IsChecked = true;
+        Assert.True(autoApplyToggle.IsEnabled);
+        Assert.True(autoApplyToggle.IsChecked == true);
+        Assert.Contains("已生效", autoApplyStatus.Text);
         var aLease = writeService.GetAutoApplyLease(a.Id, activeConnection.Id, "web-ui-test");
         Assert.NotNull(aLease);
         Assert.True(aLease.AllowDeletion);
-        Assert.InRange((aLease.ExpiresAt - aLease.GrantedAt).TotalMinutes, 14.9, 15.1);
+        Assert.InRange((aLease.ExpiresAt - aLease.GrantedAt).TotalMinutes, 119.9, 120.1);
         Assert.Equal(1, fake.Starts);
         Assert.Equal(0, fake.Stops);
 
@@ -445,27 +438,29 @@ public sealed class WizardAuthorizationTests
         await Task.Delay(50);
         Assert.False(autoApplyToggle.IsEnabled, "unauthorized project can enable YOLO");
         Assert.False(autoApplyToggle.IsChecked == true);
+        Assert.Null(writeService.GetAutoApplyLease(b.Id, activeConnection.Id, "web-ui-test"));
         Assert.NotNull(writeService.GetAutoApplyLease(a.Id, activeConnection.Id, "web-ui-test"));
 
         ((System.Windows.Controls.CheckBox)main.FindName("ReviewOnly")).IsChecked = true;
         await Task.Delay(50);
+        type.GetMethod("UpdateWriteUi", flags)!.Invoke(main, null);
         Assert.True(autoApplyToggle.IsEnabled);
-        Assert.False(autoApplyToggle.IsChecked == true);
-        autoApplyToggle.IsChecked = true;
-        var bLease = writeService.GetAutoApplyLease(b.Id, activeConnection.Id, "web-ui-test");
-        Assert.NotNull(bLease);
-        Assert.True(bLease.AllowDeletion);
+        Assert.True(autoApplyToggle.IsChecked == true);
+        Assert.NotNull(writeService.GetAutoApplyLease(b.Id, activeConnection.Id, "web-ui-test"));
 
         picker.SelectedItem = a;
         await Task.Delay(50);
         Assert.True(autoApplyToggle.IsChecked == true, "switching projects lost A's YOLO state");
-        Assert.Equal(0, autoApplyDuration.SelectedIndex);
         autoApplyToggle.IsChecked = false;
+        Assert.True(a.AutoApplyOptOut);
         Assert.Null(writeService.GetAutoApplyLease(a.Id, activeConnection.Id, "web-ui-test"));
+        type.GetMethod("UpdateWriteUi", flags)!.Invoke(main, null);
+        Assert.Null(writeService.GetAutoApplyLease(a.Id, activeConnection.Id, "web-ui-test"));
+        Assert.Contains("已关闭 YOLO", autoApplyStatus.Text);
         picker.SelectedItem = b;
         await Task.Delay(50);
         Assert.True(autoApplyToggle.IsChecked == true, "disabling A revoked B's YOLO state");
-        Assert.Equal(3, autoApplyDuration.SelectedIndex);
+        Assert.NotNull(writeService.GetAutoApplyLease(b.Id, activeConnection.Id, "web-ui-test"));
         Assert.True(applyWrite.IsVisible && restoreWrite.IsVisible, "P2 local apply or recovery entry is missing");
         var applyTop = applyWrite.TransformToAncestor(main).Transform(new Point()).Y;
         Assert.True(applyTop >= 0 && applyTop + applyWrite.ActualHeight <= main.ActualHeight + 1,
@@ -526,17 +521,16 @@ public sealed class WizardAuthorizationTests
         type.GetMethod("ApplyReadinessToUi", flags)!.Invoke(main, [verifiedClient]);
         Assert.Contains("未连接", tray.Text); // Historical calls cannot turn a stopped tray blue.
         Assert.Null(writeService.GetAutoApplyLease(b.Id, activeConnection.Id, "web-ui-test"));
-        Assert.False(autoApplyToggle.IsEnabled);
 
         await (Task)type.GetMethod("RestoreReadOnlyConnectionAsync", flags)!.Invoke(main, null)!;
         Assert.Equal(2, fake.Starts);
         typeof(SessionController).GetProperty(nameof(SessionController.Readiness))!.SetValue(controller, verifiedClient);
         picker.SelectedItem = b;
         type.GetMethod("UpdateWriteUi", flags)!.Invoke(main, null);
-        Assert.True(autoApplyToggle.IsEnabled);
-        Assert.False(autoApplyToggle.IsChecked == true,
-            "reconnecting the same profile restored a prior-session YOLO grant");
-        Assert.Null(writeService.GetAutoApplyLease(b.Id, activeConnection.Id, "web-ui-test"));
+        Assert.True(autoApplyToggle.IsChecked == true);
+        // 默认开启：重新连接并验证后重新授予；已关闭的项目保持关闭。
+        Assert.NotNull(writeService.GetAutoApplyLease(b.Id, activeConnection.Id, "web-ui-test"));
+        Assert.Null(writeService.GetAutoApplyLease(a.Id, activeConnection.Id, "web-ui-test"));
         await (Task)type.GetMethod("DisconnectAsync", flags)!.Invoke(main, null)!;
         Assert.Equal(2, fake.Stops);
         await permissionAdapter.DisposeAsync();
