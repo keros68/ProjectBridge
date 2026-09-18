@@ -196,14 +196,13 @@ public sealed class WizardAuthorizationTests
                 Path = Directory.CreateDirectory(Path.Combine(mainRoot, $"P{index + 1}")).FullName
             });
 
-        var main = new MainWindow();
+        // 窗口的设置、日志、协作记录和修改备份全部落在临时目录，不触碰真实用户数据。
+        settings.CheckForUpdates = false;
+        var main = new MainWindow(false, new RegistryStore(mainRoot));
         var type = typeof(MainWindow);
         var flags = BindingFlags.Instance | BindingFlags.NonPublic;
         await ((SessionController)type.GetField("_controller", flags)!.GetValue(main)!).DisposeAsync();
-        type.GetField("_store", flags)!.SetValue(main, new RegistryStore(mainRoot));
-        ((CollaborationStore)type.GetField("_collaborationStore", flags)!.GetValue(main)!).Dispose();
-        using var collaboration = new CollaborationStore(Path.Combine(mainRoot, "collaboration"));
-        type.GetField("_collaborationStore", flags)!.SetValue(main, collaboration);
+        var collaboration = (CollaborationStore)type.GetField("_collaborationStore", flags)!.GetValue(main)!;
         type.GetField("_settings", flags)!.SetValue(main, settings);
         type.GetField("_connectionProfile", flags)!.SetValue(main, new ConnectionProfile
         {

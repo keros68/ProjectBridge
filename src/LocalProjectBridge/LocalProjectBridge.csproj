@@ -13,5 +13,6 @@
     <Content Include="..\..\skills\projectbridge-chatgpt\SKILL.md" Link="skills\projectbridge-chatgpt\SKILL.md" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="..\CodexShim\CodexShim.csproj" />
     <ProjectReference Include="..\LocalProjectBridge.Core\LocalProjectBridge.Core.csproj" />
+    <InternalsVisibleTo Include="LocalProjectBridge.Core.Tests" />
   </ItemGroup>
 </Project>

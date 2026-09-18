@@ -41,11 +41,14 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _autoApplyTimer;
     private bool _suppressAutoApplyUi;
 
-    public MainWindow(bool startHidden = false)
+    public MainWindow(bool startHidden = false) : this(startHidden, new RegistryStore()) { }
+
+    /// <summary>测试用：所有设置、日志、协作记录和修改备份都放在 <paramref name="store"/> 的目录下。</summary>
+    internal MainWindow(bool startHidden, RegistryStore store)
     {
         InitializeComponent();
         _startHidden = startHidden;
-        _store = new RegistryStore();
+        _store = store;
         _logger = new RedactingLogger(_store.AppDataDirectory);
         _runner = new CommandRunner(_logger);
         _discovery = new RuntimeDiscovery();
