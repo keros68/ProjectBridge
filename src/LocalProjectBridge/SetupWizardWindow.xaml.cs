@@ -173,6 +173,9 @@ public partial class SetupWizardWindow : Window
             cancellationToken.ThrowIfCancellationRequested();
             ConnectorName.Text = result.ConnectorName;
             ConnectorUrl.Text = result.McpUrl;
+            SetupWebGuide.Configure(_connectionProfile, result.McpUrl, true, false,
+                () => _c2c.CreatePairingCodeAsync(_c2c.ConnectionWorkspace));
+            SetupWebGuide.ShowPluginSetupOnly();
             ShowStep(2);
         }
         finally
@@ -232,7 +235,8 @@ public partial class SetupWizardWindow : Window
             SuccessWebGuide.Configure(_connectionProfile, _c2c.ObservedMcpUrl, true,
                 !secure && _c2c.Readiness.LastVerifiedCall is not null,
                 secure ? null : () => _c2c.CreatePairingCodeAsync(_c2c.ConnectionWorkspace));
-            SuccessWebGuide.FirstTimeSteps.IsExpanded = secure;
+            SuccessWebGuide.Visibility = secure ? Visibility.Visible : Visibility.Collapsed;
+            if (secure) SuccessWebGuide.ShowPluginSetupOnly();
         }
         _step = step;
         if (step == 2 && !_closing) _authorizationTimer.Start();
@@ -244,9 +248,10 @@ public partial class SetupWizardWindow : Window
         SuccessPanel.Visibility = step == 3 ? Visibility.Visible : Visibility.Collapsed;
         StepIndicator.Text = step switch
         {
-            0 or 2 => "第 2 步，共 3 步",
-            3 => "第 3 步，共 3 步",
-            _ => "第 1 步，共 3 步"
+            0 => "正在准备连接",
+            2 => "连接 ChatGPT",
+            3 => "共享连接已建立 · 下一步回首页添加项目并验证",
+            _ => "选择连接方式"
         };
         NextButton.Content = step switch
         {

@@ -1,18 +1,18 @@
 <UserControl x:Class="LocalProjectBridge.WebConnectionGuide"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-  <GroupBox Header="连接 ChatGPT 与网页验证">
+  <GroupBox x:Name="GuideGroup" Header="连接 ChatGPT 与网页验证">
     <StackPanel>
       <TextBlock x:Name="GuideStatus" TextWrapping="Wrap" FontWeight="SemiBold" />
-      <TextBlock Text="在 ChatGPT 对话的工具菜单（输入框旁的 + 或 @）中选中已添加的 ProjectBridge，再发送下方提示词。"
+      <TextBlock x:Name="VerificationInstruction" Text="在 ChatGPT 对话的工具菜单（输入框旁的 + 或 @）中选中已添加的 ProjectBridge，再发送下方提示词。"
                  TextWrapping="Wrap" Margin="0,8,0,0" />
-      <WrapPanel Margin="0,10,0,6">
+      <WrapPanel x:Name="VerificationActions" Margin="0,10,0,6">
         <Button x:Name="CopyVerificationButton" Content="复制验证提示词" Click="CopyVerification_Click" Margin="0,0,8,6" />
         <Button Content="打开 ChatGPT" Click="OpenChat_Click" Margin="0,0,8,6" />
       </WrapPanel>
       <TextBox x:Name="VerificationPromptText" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="110" VerticalScrollBarVisibility="Auto" />
       <TextBlock x:Name="GuideFeedback" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" Margin="0,6,0,0" />
-      <TextBlock Text="普通的成功工具调用也会完成验证，无需每次聊天都单独测试。复制提示词不会改变连接状态。"
+      <TextBlock x:Name="VerificationNote" Text="普通的成功工具调用也会完成验证，无需每次聊天都单独测试。复制提示词不会改变连接状态。"
                  TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" FontSize="12" Margin="0,6,0,8" />
       <Expander x:Name="FirstTimeSteps" Header="首次使用：添加插件（只需一次）">
         <StackPanel Margin="0,10,0,0">
@@ -32,10 +32,10 @@
             </WrapPanel>
             <TextBox x:Name="GuidePairingCode" IsReadOnly="True" TextWrapping="Wrap" />
           </StackPanel>
-          <TextBlock Text="3. 创建并完成网页授权后，回到聊天窗口选中该插件，发送验证提示词。收到成功工具调用后，主窗口自动显示“网页已验证”。" TextWrapping="Wrap" Margin="0,8,0,0" />
+          <TextBlock x:Name="FirstTimeFinalStep" Text="3. 创建并完成网页授权后，回到聊天窗口选中该插件，发送验证提示词。收到成功工具调用后，主窗口自动显示“网页已验证”。" TextWrapping="Wrap" Margin="0,8,0,0" />
         </StackPanel>
       </Expander>
-      <Expander Header="已有插件，但仍然无法验证" Margin="0,10,0,0">
+      <Expander x:Name="TroubleshootingSection" Header="已有插件，但仍然无法验证" Margin="0,10,0,0">
         <StackPanel Margin="0,8,0,0">
           <TextBlock x:Name="TroubleshootingText" TextWrapping="Wrap" />
           <Button Content="查看官方说明" HorizontalAlignment="Left" Margin="0,8,0,0" Click="OpenDocs_Click" />

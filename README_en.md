@@ -40,17 +40,18 @@ The setup wizard opens on first launch. Start on Windows login and auto-connect 
 
 Click "建立连接" (Connect) and pick a mode:
 
-| | Temporary OAuth | OpenAI Secure Tunnel |
+| | Quick start | Long-term use |
 | --- | --- | --- |
+| Technical mode | Temporary OAuth | OpenAI Secure Tunnel |
 | Extra setup | None | A Tunnel ID and a runtime key with Tunnels Read + Use |
 | Public address | May change after a restart; update it in ChatGPT when it does | Fixed, so the plugin is reused long term |
-| Best for | First try | Daily use |
+| Best for | First use | Daily use |
 
-If unsure, start with temporary OAuth; you can switch to the fixed endpoint later. The Tunnel ID and runtime key are created through the official links in the wizard, and the pasted key is stored in Windows Credential Manager.
+If unsure, choose "快速体验" (Quick start); you can switch to the fixed endpoint later. The Tunnel ID and runtime key are created through the official links in the wizard, and the pasted key is stored in Windows Credential Manager.
 
 **4. Add the plugin in ChatGPT**
 
-Once the channel is ready, click "添加 ChatGPT 插件" (Add ChatGPT plugin), expand the first-time section, and follow three steps:
+Once the channel is ready, the first-time setup window shows the ChatGPT guide automatically. Follow three steps:
 
 1. Enable developer mode in ChatGPT under Settings → Security and sign-in. If the entry is missing, check your account and workspace permissions.
 2. Open the ChatGPT plugin page, click add (+), and name it ProjectBridge.
@@ -58,13 +59,13 @@ Once the channel is ready, click "添加 ChatGPT 插件" (Add ChatGPT plugin), e
 
 The wizard has buttons that jump straight to the developer settings and the plugin page, and "复制连接信息" (Copy connection details) gives you the address or Tunnel ID this connection needs.
 
-**5. Verify**
+**5. Add the first project**
 
-Click "复制验证提示词" (Copy verification prompt), select ProjectBridge from the tool menu in a ChatGPT conversation (the + or @ next to the input box), then paste and send. The prompt only calls the project list; the app shows "网页已验证" (web verified) once the call succeeds. After that, any successful tool call counts as verification — no need to test in every conversation.
+After the connection is established, return to the home page. The first-use card prompts you to add a local project. Web read access is enabled by default; creating the connection does not expose other folders.
 
-**6. Add a project**
+**6. Verify project access**
 
-Add a project directory on the home page and select its permissions, then choose ProjectBridge in a ChatGPT conversation. By default, edits proposed from the web wait for confirmation on the "编辑" (Edit) page.
+Click "复制项目验证提示词" (Copy project verification prompt) on the first-use card, select ProjectBridge in ChatGPT, then paste and send. The prompt calls `list_projects` first and then `list_directory` for that project root without reading file contents. The first-use card completes and hides after a successful project access.
 
 See the [user guide](docs/guide.md) for full steps, YOLO mode, Codex delegation, and local collaboration.
 
@@ -72,7 +73,7 @@ See the [user guide](docs/guide.md) for full steps, YOLO mode, Codex delegation,
 
 - **ChatGPT cannot find the tools**: refresh the ProjectBridge plugin in ChatGPT's connection settings, then return to the conversation. Tools added by an app update also need one refresh.
 - **No connection after a restart**: the temporary connection's public address may change when the app restarts; update the plugin address as the wizard describes. For a permanently fixed address, switch to OpenAI Secure Tunnel.
-- **Tray icon is blue but the app says not verified**: blue means the channel is connected; verification requires an actual tool call from the web, as in step 5.
+- **Tray icon is blue but the app says not verified**: blue means the channel is connected; verification requires an actual tool call from the web, as in step 6.
 - **The web says it edited a file but nothing changed**: in the default mode, changes wait on the "编辑" (Edit) page and are written after local confirmation.
 - **A Codex task fails to start**: the local Codex CLI must be signed in, and tasks consume your Codex quota.
 

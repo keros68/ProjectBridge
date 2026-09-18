@@ -35,6 +35,19 @@ public partial class WebConnectionGuide : UserControl
         FirstTimeSteps.IsExpanded = true;
     }
 
+    public void ShowPluginSetupOnly()
+    {
+        ShowSetupFirst();
+        GuideGroup.Header = "连接 ChatGPT";
+        GuideStatus.Text = "通道已就绪，请先在 ChatGPT 添加 ProjectBridge。";
+        VerificationInstruction.Visibility = Visibility.Collapsed;
+        VerificationActions.Visibility = Visibility.Collapsed;
+        VerificationPromptText.Visibility = Visibility.Collapsed;
+        VerificationNote.Visibility = Visibility.Collapsed;
+        TroubleshootingSection.Visibility = Visibility.Collapsed;
+        FirstTimeFinalStep.Text = "3. 创建插件；快速体验按网页提示完成 OAuth 授权。完成后返回 ProjectBridge，先添加项目，再按新人任务卡完成真实读取验证。";
+    }
+
     public Window CreateHelpWindow(Window owner)
     {
         ShowSetupFirst();

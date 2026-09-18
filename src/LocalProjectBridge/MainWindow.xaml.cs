@@ -84,7 +84,7 @@ public partial class MainWindow : Window
         _autoApplyTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
         _autoApplyTimer.Tick += (_, _) => UpdateWriteUi();
         _autoApplyTimer.Start();
-        Loaded += async (_, _) => await InitializeAsync();
+        Loaded += async (_, _) => { await InitializeAsync(); UpdateOnboardingUi(); };
         Closing += MainWindow_Closing;
         StateChanged += MainWindow_StateChanged;
     }
@@ -424,6 +424,7 @@ public partial class MainWindow : Window
         SyncCapabilityControls();
         UpdateWriteUi();
         UpdateShellStatus(state, _controller.Readiness);
+        UpdateOnboardingUi();
     }
 
     private async void AddProject_Click(object sender, RoutedEventArgs e)
@@ -449,7 +450,77 @@ public partial class MainWindow : Window
         _settings.SelectedProjectPath = project.Path;
         await SaveSettingsAsync();
         ReloadProjects();
+        UpdateOnboardingUi();
     }
+
+    private ProjectRecord? OnboardingProject()
+        => _settings.Projects.FirstOrDefault(project => project.AllowWebRead && Directory.Exists(project.Path));
+
+    private void UpdateOnboardingUi()
+    {
+        var project = OnboardingProject();
+        var connectionReady = _settings.SetupCompleted;
+        var projectAdded = project is not null;
+        var projectVerified = project?.LastAccessedAt is not null;
+        var webVerified = projectVerified || _controller.Readiness.LastVerifiedCall is not null || _connectionProfile.LastVerifiedCall is not null;
+        var completed = connectionReady && webVerified && projectAdded && projectVerified;
+
+        OnboardingPanel.Visibility = completed ? Visibility.Collapsed : Visibility.Visible;
+        if (completed) return;
+
+        var done = new[] { connectionReady, webVerified, projectAdded, projectVerified }.Count(value => value);
+        OnboardingProgressText.Text = $"{done} / 4 已完成";
+        OnboardingConnectionStatus.Text = connectionReady ? "✓ 共享连接已设置" : "○ 建立共享连接";
+        OnboardingWebStatus.Text = webVerified ? "✓ ChatGPT 已完成真实工具调用" : "○ 连接 ChatGPT";
+        OnboardingProjectStatus.Text = projectAdded ? $"✓ 已添加项目：{project!.Name}" : "○ 添加第一个项目";
+        OnboardingVerificationStatus.Text = projectVerified ? "✓ 项目读取验证成功" : "○ 验证项目读取";
+
+        if (!connectionReady || _controller.State != SessionState.Connected)
+        {
+            OnboardingActionButton.Content = "建立 / 恢复连接";
+            OnboardingHintText.Text = "先建立共享连接。首次使用建议选择临时 OAuth 连接。";
+        }
+        else if (!projectAdded)
+        {
+            OnboardingActionButton.Content = "去添加项目";
+            OnboardingHintText.Text = "在左侧点击“添加项目”，默认仅授权网页读取。";
+        }
+        else
+        {
+            OnboardingActionButton.Content = "复制项目验证提示词";
+            OnboardingHintText.Text = "把提示词发送到 ChatGPT。成功列出该项目根目录后，这张卡会自动完成。";
+        }
+    }
+
+    private async void ContinueOnboarding_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_settings.SetupCompleted || _controller.State != SessionState.Connected)
+        {
+            await ShowSetupWizardAsync(configurationOnly: false);
+            UpdateOnboardingUi();
+            return;
+        }
+
+        var project = OnboardingProject();
+        if (project is null)
+        {
+            MainTabs.SelectedIndex = 0;
+            OnboardingHintText.Text = "请点击左侧“添加项目”，完成后再点击这里继续验证。";
+            return;
+        }
+
+        if (project.LastAccessedAt is not null)
+        {
+            UpdateOnboardingUi();
+            return;
+        }
+
+        System.Windows.Clipboard.SetText(BuildProjectVerificationPrompt(project));
+        OnboardingHintText.Text = $"已复制“{project.Name}”的验证提示词。到 ChatGPT 选中 ProjectBridge 后直接粘贴发送。";
+    }
+
+    private static string BuildProjectVerificationPrompt(ProjectRecord project)
+        => $"请使用我已选中的 ProjectBridge 插件，先实际调用 list_projects，确认项目“{project.Name}”（project_id: {project.Id:D}）存在；然后实际调用 list_directory，project_id 使用 {project.Id:D}，path 传空字符串，列出该项目根目录。仅验证连接，不读取文件内容、不修改文件、不执行任务。不要只口头确认连接成功，也不要改用其他工具。";
 
     private async void RemoveProject_Click(object sender, RoutedEventArgs e)
     {
@@ -471,6 +542,7 @@ public partial class MainWindow : Window
         _settings.SelectedProjectPath = next?.Path;
         await SaveSettingsAsync();
         ReloadProjects();
+        UpdateOnboardingUi();
         UpdateWriteUi();
     }
 
@@ -775,6 +847,7 @@ public partial class MainWindow : Window
             var project = _settings.Projects.FirstOrDefault(candidate => candidate.Id == e.ProjectId);
             if (project is null) return;
             project.LastAccessedAt = e.At;
+            UpdateOnboardingUi();
             if (ProjectPicker.SelectedItem is ProjectRecord selected && selected.Id == e.ProjectId)
                 SyncCapabilityControls();
             await _store.SaveAsync(_settings);

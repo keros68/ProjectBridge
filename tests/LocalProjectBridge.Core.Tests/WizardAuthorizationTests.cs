@@ -177,7 +177,7 @@ public sealed class WizardAuthorizationTests
             mainRoot,
             "very-long-project-name-" + new string('x', 64),
             "nested-source-folder-" + new string('y', 48))).FullName;
-        var a = new ProjectRecord { Name = "AIdraw 长名称项目", Path = longRoot, AllowCodexTasks = true };
+        var a = new ProjectRecord { Name = "AIdraw 长名称项目", Path = longRoot, AllowCodexTasks = true, LastAccessedAt = DateTimeOffset.Now };
         var b = new ProjectRecord { Name = "coffeecli", Path = Directory.CreateDirectory(Path.Combine(mainRoot, "B")).FullName };
         var settings = new AppSettings
         {
@@ -654,8 +654,7 @@ public sealed class WizardAuthorizationTests
         window.UpdateLayout();
         SaveRender(window, "settings-saved-key.png", 1.0);
         var pluginButton = (System.Windows.Controls.Button)window.FindName("PluginGuideButton");
-        Assert.True(pluginButton.IsVisible);
-        Assert.InRange(pluginButton.TranslatePoint(new Point(), window).Y, 0, 260);
+        Assert.Equal(Visibility.Collapsed, pluginButton.Visibility);
         Window? guideOwner = null;
         window.OpenPluginGuide = owner => guideOwner = owner;
         Invoke(window, "OpenPluginGuide_Click", window, new RoutedEventArgs());
@@ -754,6 +753,12 @@ public sealed class WizardAuthorizationTests
         await Task.Delay(30);
         Assert.Equal("test-pairing-code", ((System.Windows.Controls.TextBox)guide.FindName("GuidePairingCode")).Text);
         Assert.Equal("https://new.example/mcp", endpoint.Text);
+        guide.ShowPluginSetupOnly();
+        Assert.Equal(Visibility.Collapsed, ((FrameworkElement)guide.FindName("VerificationInstruction")).Visibility);
+        Assert.Equal(Visibility.Collapsed, ((FrameworkElement)guide.FindName("VerificationActions")).Visibility);
+        Assert.Equal(Visibility.Collapsed, ((FrameworkElement)guide.FindName("VerificationPromptText")).Visibility);
+        Assert.Equal(Visibility.Collapsed, ((FrameworkElement)guide.FindName("TroubleshootingSection")).Visibility);
+        Assert.Contains("先添加项目", ((System.Windows.Controls.TextBlock)guide.FindName("FirstTimeFinalStep")).Text);
         ((System.Windows.Controls.Expander)guide.FindName("FirstTimeSteps")).IsExpanded = true;
         var window = new Window { Content = new System.Windows.Controls.ScrollViewer { Content = guide },
             Width = 680, Height = 600, Left = -20000, Top = -20000, WindowStartupLocation = WindowStartupLocation.Manual, ShowInTaskbar = false };
