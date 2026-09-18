@@ -12,6 +12,8 @@
 
 ProjectBridge is a Windows tray app. One connection gives access to multiple local projects. Each project is authorized separately and can be revoked at any time.
 
+Comparable open-source setups usually require downloading the backends separately, installing dependencies by hand, starting a tunnel yourself, and then assembling addresses and keys into config files. ProjectBridge ships all of it as one portable package: two upstream backends, their runtime dependencies, cloudflared, and tunnel-client are bundled, and only Node.js is installed separately. Connecting, adding the ChatGPT plugin, and verifying are done through in-app wizards, with no command line.
+
 ## Features
 
 - **Multi-project access**: ChatGPT can list directories, read and search files, and view Git diffs. Switching projects does not require reconnecting.
@@ -22,13 +24,57 @@ ProjectBridge is a Windows tray app. One connection gives access to multiple loc
 
 ## Get started
 
-1. Install [Node.js LTS](https://nodejs.org/).
-2. Download `ProjectBridge.zip` from [Releases](https://github.com/keros68/ProjectBridge/releases/latest), extract it, and run `ProjectBridge.exe`.
-3. Click "建立连接" (Connect) and choose a connection mode in the wizard.
-4. Follow the "添加 ChatGPT 插件" (Add ChatGPT plugin) guide to enable developer mode in ChatGPT and add the plugin.
-5. Add a project on the home page, select its permissions, then choose ProjectBridge in a ChatGPT conversation.
+Supports Windows 10/11 (x64). The app interface is in Chinese; the Chinese labels are given below in quotes.
 
-Supports Windows 10/11 (x64). The app interface is in Chinese. See the [user guide](docs/guide.md) for full steps.
+**1. Install Node.js**
+
+Download the LTS release from [nodejs.org](https://nodejs.org/) and install it with the default options. Skip if it is already installed.
+
+**2. Download and run**
+
+Download `ProjectBridge.zip` from [Releases](https://github.com/keros68/ProjectBridge/releases/latest), extract it anywhere, and run `ProjectBridge.exe`. Nothing is installed; to remove it, delete the folder. If Windows shows a "protected your PC" prompt, choose "More info" then "Run anyway".
+
+The setup wizard opens on first launch. Start on Windows login and auto-connect on launch are both off by default and can be left alone.
+
+**3. Connect**
+
+Click "建立连接" (Connect) and pick a mode:
+
+| | Temporary OAuth | OpenAI Secure Tunnel |
+| --- | --- | --- |
+| Extra setup | None | A Tunnel ID and a runtime key with Tunnels Read + Use |
+| Public address | May change after a restart; update it in ChatGPT when it does | Fixed, so the plugin is reused long term |
+| Best for | First try | Daily use |
+
+If unsure, start with temporary OAuth; you can switch to the fixed endpoint later. The Tunnel ID and runtime key are created through the official links in the wizard, and the pasted key is stored in Windows Credential Manager.
+
+**4. Add the plugin in ChatGPT**
+
+Once the channel is ready, click "添加 ChatGPT 插件" (Add ChatGPT plugin), expand the first-time section, and follow three steps:
+
+1. Enable developer mode in ChatGPT under Settings → Security and sign-in. If the entry is missing, check your account and workspace permissions.
+2. Open the ChatGPT plugin page, click add (+), and name it ProjectBridge.
+3. Fill in the connection details: for the fixed endpoint, select the Tunnel ID and "no authentication"; for the temporary connection, enter the current HTTPS address and complete OAuth authorization.
+
+The wizard has buttons that jump straight to the developer settings and the plugin page, and "复制连接信息" (Copy connection details) gives you the address or Tunnel ID this connection needs.
+
+**5. Verify**
+
+Click "复制验证提示词" (Copy verification prompt), select ProjectBridge from the tool menu in a ChatGPT conversation (the + or @ next to the input box), then paste and send. The prompt only calls the project list; the app shows "网页已验证" (web verified) once the call succeeds. After that, any successful tool call counts as verification — no need to test in every conversation.
+
+**6. Add a project**
+
+Add a project directory on the home page and select its permissions, then choose ProjectBridge in a ChatGPT conversation. By default, edits proposed from the web wait for confirmation on the "编辑" (Edit) page.
+
+See the [user guide](docs/guide.md) for full steps, YOLO mode, Codex delegation, and local collaboration.
+
+## Troubleshooting
+
+- **ChatGPT cannot find the tools**: refresh the ProjectBridge plugin in ChatGPT's connection settings, then return to the conversation. Tools added by an app update also need one refresh.
+- **No connection after a restart**: the temporary connection's public address may change when the app restarts; update the plugin address as the wizard describes. For a permanently fixed address, switch to OpenAI Secure Tunnel.
+- **Tray icon is blue but the app says not verified**: blue means the channel is connected; verification requires an actual tool call from the web, as in step 5.
+- **The web says it edited a file but nothing changed**: in the default mode, changes wait on the "编辑" (Edit) page and are written after local confirmation.
+- **A Codex task fails to start**: the local Codex CLI must be signed in, and tasks consume your Codex quota.
 
 ## Permissions and security
 
