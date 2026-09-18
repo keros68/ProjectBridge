@@ -399,7 +399,7 @@ public sealed class CollaborationStore : IDisposable
     {
         ArgumentNullException.ThrowIfNull(request);
         var stage = request.Kind.ToString().ToUpperInvariant();
-        return $"[PROJECTBRIDGE] {stage} request_id={request.RequestId:D} turn_id={request.TurnId}\n"
+        return $"|from_codex|:\n[PROJECTBRIDGE] {stage} request_id={request.RequestId:D} turn_id={request.TurnId}\n"
             + $"Call get_collaboration_request with request_id and access_code={request.AccessCode}. "
             + "Use project tools only when needed and permitted by that request. "
             + "Return the requested response in your visible final message. "

@@ -178,7 +178,7 @@ public static class CodexTaskTools
     }
 
     private static string BuildProvenanceEnvelope(SessionPolicy policy, string prompt)
-        => $"project_id: {policy.ProjectId:D}\nsession_id: {policy.SessionId:D}\nsource: chatgpt-web\n\n{prompt.Trim()}";
+        => $"|from_chatgpt|:\nproject_id: {policy.ProjectId:D}\nsession_id: {policy.SessionId:D}\nsource: chatgpt-web\n\n{prompt.Trim()}";
 
     private static void Copy(JsonObject source, JsonObject target, string sourceName, string targetName)
     {

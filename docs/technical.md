@@ -12,6 +12,9 @@
 - 生成预览和应用都会检查权限、路径和敏感文件；应用时在项目锁内复核文件哈希。一次最多 20 个文件，每个文本文件最多 2 MiB，只接受严格 UTF-8/UTF-8 BOM。默认模式下，删除需在编辑页单独确认。
 - 写入前保存逐文件恢复资料和持久修改记录，并在使用前核对暂存内容与备份的实际哈希。请求 ID 持久绑定操作、目标修改、连接主体和预览内容；同一请求重试返回已有结果，跨目标复用会被拒绝。部分失败保留逐文件状态；程序中断后按磁盘事实标记待恢复或人工检查，不自动重放。安全恢复仅处理本次已写入且仍保持提交后哈希的文件，不覆盖后续人工编辑，也不执行 `git reset --hard`。
 - 网页文件工具按项目隔离。Codex 任务默认只读，本机额外授权后使用项目工作区写权限；不能保证只读取所选文件夹。任务固定拒绝提权，命令网络权限设为关闭，禁用继承的 MCP 服务与网页搜索。网页直接编辑不依赖 Codex。
+- 可写任务在每次启动前，通过同一个 Codex 沙盒创建、读取并删除随机命名的探测文件。项目授权不代表 Windows ACL 已允许写入；探测失败返回 `workspace_write_unavailable`，不提交模型任务。程序不会自动提权或修改全局沙盒模式。
+- 可写委派保存 Codex 会话和工具历史，标题以 `ChatGPT` 开头，状态响应提供 `threadUrl`。网页发来的消息带 `|from_chatgpt|:`，本地协作请求带 `|from_codex|:`。旧版本的临时会话无法从 Codex 历史恢复。
+- `completed` 表示模型轮次结束，不代表请求的文件修改成功。可写任务响应中的 `toolFailures` 保留失败命令或文件操作，调用方需同时检查 `result` 和 `error`。启动检查通过也不保证后续每个文件可写。
 - 子进程纳入 Windows Job Object，启动器异常退出时由系统回收整个进程树；端口由系统动态分配。
 - 发布包自带两个上游后端、C2C 运行依赖、cloudflared 和 tunnel-client。Node.js 作为通用运行环境单独安装。
 - 首次设置默认使用免费临时连接。地址变化后，需要按向导在 ChatGPT 中更新共享连接。项目切换不会改变正在运行的地址。
@@ -60,6 +63,10 @@ tests/
 dotnet build LocalProjectBridge.slnx
 dotnet test LocalProjectBridge.slnx
 ```
+
+真实模型验收需显式启用，会使用已登录 Codex 的额度，并保留测试会话。设置 `LPB_TEST_LIVE_CODEX=1`、`LPB_TEST_PROJECT_ROOT`（可写测试项目）和 `LPB_TEST_DENIED_ROOT`（已确认被沙盒拒写的目录），运行 `LiveNativeTaskTests`。普通测试运行跳过这两项。`scripts/verify-codex-task.mjs` 另提供 App Server 协议验收。
+
+若授权后仍无法写入，先检查目标目录的 Windows 所有者与沙盒设置。`unelevated` 模式在无权设置目录 ACL 时可能仍能读文件，却无法写入。应由本机用户在 Codex 中完成该目录的 Windows 沙盒设置，或选择当前用户拥有的目录；不能用关闭沙盒来代替修复。
 
 运行 `src\LocalProjectBridge\bin\Debug\net10.0-windows\ProjectBridge.exe`。开发版需要本机已有 Node.js、Git、Cloudflared 和 tunnel-client；面向普通用户的发布包携带两个后端和两个连接程序。
 

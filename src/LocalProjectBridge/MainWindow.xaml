@@ -65,7 +65,7 @@
                   <CheckBox x:Name="DelegateWritableTasks" IsChecked="False" Checked="Capability_Changed" Unchecked="Capability_Changed" Margin="22,4,0,0">
                     <TextBlock Text="允许 Codex 修改项目并运行本地检查" TextWrapping="Wrap" />
                   </CheckBox>
-                  <TextBlock Text="写入任务使用 Codex 工作区权限，不使用修改预览或恢复资料；不授予网络或提升权限。"
+                  <TextBlock Text="可写任务启动前会验证实际写权限；会话保存在 Codex 中，标题以 ChatGPT 开头。任务写入不使用修改预览或恢复资料，不授予网络或提升权限。"
                              TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" FontSize="12" Margin="44,3,0,0" />
                   <CheckBox x:Name="CollaborationPermission" Checked="Capability_Changed" Unchecked="Capability_Changed">
                     <TextBlock Text="允许本地与网页交换协作请求" TextWrapping="Wrap" />

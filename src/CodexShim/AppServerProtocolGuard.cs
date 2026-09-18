@@ -31,6 +31,7 @@ public static class AppServerProtocolGuard
                 parameters["sandbox"] = allowWrite ? "workspace-write" : "read-only";
                 parameters["approvalPolicy"] = "never";
                 parameters.Remove("config");
+                parameters.Remove("permissions");
                 break;
             case "turn/start":
                 parameters["cwd"] = projectRoot;
@@ -42,6 +43,7 @@ public static class AppServerProtocolGuard
                 parameters["cwd"] = projectRoot;
                 parameters["sandboxPolicy"] = SandboxPolicy(projectRoot, allowWrite);
                 parameters.Remove("env");
+                parameters.Remove("permissions");
                 break;
         }
         return request.ToJsonString();

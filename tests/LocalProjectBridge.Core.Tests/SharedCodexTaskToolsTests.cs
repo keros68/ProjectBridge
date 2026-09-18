@@ -36,6 +36,7 @@ public sealed class SharedCodexTaskToolsTests : IDisposable
         Assert.Equal("read-only", aBridge.Calls.Single().Arguments["sandbox"]!.GetValue<string>());
         Assert.Equal("background", aBridge.Calls.Single().Arguments["executionMode"]!.GetValue<string>());
         Assert.Contains($"project_id: {_a.Id:D}", aBridge.Calls.Single().Arguments["prompt"]!.GetValue<string>());
+        Assert.StartsWith("|from_chatgpt|:\n", aBridge.Calls.Single().Arguments["prompt"]!.GetValue<string>());
 
         var status = await Tool(tasks, "codex_task_status").Invoke(new JsonObject
         {

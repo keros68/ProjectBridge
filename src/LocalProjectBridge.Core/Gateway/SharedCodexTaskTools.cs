@@ -145,7 +145,7 @@ public sealed class SharedCodexTaskTools
 
     private GatewayTool CreateStart() => new(
         "codex_task_start",
-        "委派本机 Codex 任务。按项目授权以只读或工作区可写模式执行，禁止命令联网和提权。返回 task_id 后用 status 获取结果，用 stop 停止。",
+        "委派本机 Codex 任务。可写授权在启动前验证实际沙盒写权限；验证失败不启动任务。返回 task_id 后用 status 获取结果，用 stop 停止。completed 只代表轮次结束，须检查 result、error 和 toolFailures。禁止命令联网和提权。",
         Schema([ProjectId, "prompt"],
             (ProjectId, UuidSchema("已授权委派 Codex 任务的项目 UUID。")),
             ("prompt", StringSchema("交给 Codex 的任务说明。")),
@@ -364,7 +364,7 @@ public sealed class SharedCodexTaskTools
     }
 
     private static string BuildProvenanceEnvelope(SessionPolicy policy, string prompt)
-        => $"project_id: {policy.ProjectId:D}\nsession_id: {policy.SessionId:D}\nsource: chatgpt-web\n"
+        => $"|from_chatgpt|:\nproject_id: {policy.ProjectId:D}\nsession_id: {policy.SessionId:D}\nsource: chatgpt-web\n"
            + $"task_mode: {(policy.Allows(CapabilityFlags.WebDelegateCodexWrite) ? "workspace-write" : "read-only")}\n"
            + "Work only on the authorized project. Do not request elevation, change accounts, install global tools, or publish/deploy. "
            + "Return a summary of changed files, checks run and any failures.\n\n" + prompt.Trim();

@@ -17,6 +17,7 @@ public sealed class NativeCodexTaskBridge : ICodexTaskBridge, IAsyncDisposable
         public string Status = "running";
         public string Text = "";
         public string? Error;
+        public List<JsonObject> ToolFailures { get; } = [];
         public TaskCompletionSource Completed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     }
     private readonly Process _process;
@@ -33,10 +34,12 @@ public sealed class NativeCodexTaskBridge : ICodexTaskBridge, IAsyncDisposable
     private bool _disposed;
     private readonly object _disposeGate = new();
     private Task? _disposeTask;
+    private readonly string _projectRoot;
 
-    private NativeCodexTaskBridge(Process process, JobObject job, RedactingLogger logger)
+    private NativeCodexTaskBridge(Process process, JobObject job, RedactingLogger logger, string projectRoot)
     {
         _process = process; _job = job; _logger = logger;
+        _projectRoot = projectRoot;
         _output = ReadOutputAsync();
         _errors = ReadErrorsAsync();
     }
@@ -66,7 +69,7 @@ public sealed class NativeCodexTaskBridge : ICodexTaskBridge, IAsyncDisposable
         catch { job.Dispose(); throw; }
         try { job.Attach(process); }
         catch { process.Kill(true); process.Dispose(); job.Dispose(); throw; }
-        var bridge = new NativeCodexTaskBridge(process, job, new RedactingLogger(stateDirectory));
+        var bridge = new NativeCodexTaskBridge(process, job, new RedactingLogger(stateDirectory), info.WorkingDirectory);
         try
         {
             await bridge.RequestAsync("initialize", new JsonObject { ["clientInfo"] = new JsonObject {
@@ -113,16 +116,29 @@ public sealed class NativeCodexTaskBridge : ICodexTaskBridge, IAsyncDisposable
             if (_requests.TryGetValue(requestId, out var existing)) return Snapshot(_tasks[existing]);
             if (_tasks.Values.Any(state => !state.Completed.Task.IsCompleted))
                 throw new CodexTaskBridgeException("该项目已有运行中的 Codex 任务，请等待完成或先停止。");
+            // Test the actual sandbox before accepting each new write task. A
+            // policy label or Windows setup success does not prove ACL access.
+            await VerifyWorkspaceWriteAsync(cancellationToken).ConfigureAwait(false);
             var task = new TaskState(Guid.NewGuid().ToString());
             _tasks[task.Id] = task;
             _requests[requestId] = task.Id;
             try
             {
-                var thread = await RequestAsync("thread/start", new JsonObject { ["sandbox"] = "workspace-write", ["approvalPolicy"] = "never", ["ephemeral"] = true }, cancellationToken).ConfigureAwait(false);
+                var thread = await RequestAsync("thread/start", new JsonObject {
+                    ["sandbox"] = "workspace-write", ["approvalPolicy"] = "never",
+                    ["ephemeral"] = false, ["persistExtendedHistory"] = true
+                }, cancellationToken).ConfigureAwait(false);
                 task.ThreadId = thread["thread"]?["id"]?.GetValue<string>() ?? throw new CodexTaskBridgeException("Codex 没有返回任务会话编号。");
+                var title = arguments["activityTitle"]?.GetValue<string>()?.Trim();
+                title = string.IsNullOrWhiteSpace(title) ? "ChatGPT 委派任务" : "ChatGPT · " + title;
+                await RequestAsync("thread/name/set", new JsonObject {
+                    ["threadId"] = task.ThreadId, ["name"] = title[..Math.Min(title.Length, 120)]
+                }, cancellationToken).ConfigureAwait(false);
+                var prompt = arguments["prompt"]?.GetValue<string>()?.Trim() ?? "";
+                if (!prompt.StartsWith("|from_chatgpt|:", StringComparison.Ordinal)) prompt = "|from_chatgpt|:\n" + prompt;
                 var turn = await RequestAsync("turn/start", new JsonObject {
                     ["threadId"] = task.ThreadId,
-                    ["input"] = new JsonArray(new JsonObject { ["type"] = "text", ["text"] = arguments["prompt"]?.GetValue<string>() ?? "" })
+                    ["input"] = new JsonArray(new JsonObject { ["type"] = "text", ["text"] = prompt })
                 }, cancellationToken).ConfigureAwait(false);
                 task.TurnId = turn["turn"]?["id"]?.GetValue<string>() ?? throw new CodexTaskBridgeException("Codex 没有返回任务轮次编号。");
                 return Snapshot(task);
@@ -141,11 +157,40 @@ public sealed class NativeCodexTaskBridge : ICodexTaskBridge, IAsyncDisposable
         => args["jobId"]?.GetValue<string>() is { } id && _tasks.TryGetValue(id, out var state)
             ? state : throw new CodexTaskBridgeException("未找到该项目中的任务。");
 
+    private async Task VerifyWorkspaceWriteAsync(CancellationToken cancellationToken)
+    {
+        var probe = Path.Combine(_projectRoot, $".projectbridge-write-probe-{Guid.NewGuid():N}.tmp");
+        var quoted = probe.Replace("'", "''", StringComparison.Ordinal);
+        const string marker = "projectbridge-write-probe-ok";
+        try
+        {
+            var response = await RequestAsync("command/exec", new JsonObject {
+                ["command"] = new JsonArray("powershell.exe", "-NoProfile", "-NonInteractive", "-Command",
+                    $"$ErrorActionPreference='Stop'; try {{ New-Item -ItemType File -Path '{quoted}' -Value '{marker}' -ErrorAction Stop | Out-Null; "
+                    + $"Get-Content -LiteralPath '{quoted}' -Raw }} finally {{ if (Test-Path -LiteralPath '{quoted}') {{ Remove-Item -LiteralPath '{quoted}' -Force }} }}"),
+                ["timeoutMs"] = 10000
+            }, cancellationToken).ConfigureAwait(false);
+            if (response["exitCode"]?.GetValue<int>() != 0 || response["stdout"]?.GetValue<string>().Trim() != marker)
+                throw new CodexTaskBridgeException($"workspace_write_unavailable：项目已授权，但 Codex 沙盒无法写入 {_projectRoot}，任务未启动。"
+                    + "请在 Codex 中为该目录完成 Windows 沙盒设置，或选择当前用户拥有的项目目录。"
+                    + $" 原因：{response["stderr"]?.GetValue<string>() ?? "写入探测未通过"}");
+        }
+        finally
+        {
+            // Only the uniquely named probe owned by this invocation is removed.
+            if (File.Exists(probe)) File.Delete(probe);
+        }
+    }
+
     private static JsonObject Snapshot(TaskState state)
     {
         lock (state) return new ToolOutcome(new JsonObject {
             ["jobId"] = state.Id, ["threadId"] = state.ThreadId, ["status"] = state.Status,
-            ["result"] = state.Text, ["error"] = state.Error, ["sandbox"] = "workspace-write"
+            ["threadUrl"] = state.ThreadId is null ? null : $"codex://threads/{state.ThreadId}",
+            ["result"] = state.Text, ["error"] = state.Error, ["sandbox"] = "workspace-write",
+            ["writeAccessVerified"] = true,
+            ["toolFailures"] = new JsonArray(state.ToolFailures.Select(item => (JsonNode)item.DeepClone()).ToArray()),
+            ["completionMeaning"] = "Codex turn ended; task success must be checked against the result and toolFailures."
         }.ToJsonString()).ToContent();
     }
 
@@ -210,6 +255,12 @@ public sealed class NativeCodexTaskBridge : ICodexTaskBridge, IAsyncDisposable
                         break;
                     case "item/completed" when (parameters?["item"]?["type"]?.GetValue<string>() == "agentMessage"):
                         lock (task) task.Text = parameters?["item"]?["text"]?.GetValue<string>() ?? task.Text;
+                        break;
+                    case "item/completed":
+                        if (parameters?["item"] is JsonObject item
+                            && (item["type"]?.GetValue<string>() == "commandExecution" && item["exitCode"] is JsonValue exit && exit.TryGetValue<int>(out var code) && code != 0
+                                || item["type"]?.GetValue<string>() == "fileChange" && item["status"]?.GetValue<string>() is "failed" or "declined"))
+                            lock (task) task.ToolFailures.Add((JsonObject)item.DeepClone());
                         break;
                     case "turn/completed":
                         Finish(task, parameters?["turn"]?["status"]?.GetValue<string>() ?? "failed", parameters?["turn"]?["error"]?.ToJsonString());

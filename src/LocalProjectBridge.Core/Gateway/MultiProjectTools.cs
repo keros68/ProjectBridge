@@ -284,6 +284,7 @@ public static class MultiProjectTools
                 ["auto_apply_expires_at"] = writeLease?.ExpiresAt.ToString("O"),
                 ["deletion_requires_local_confirmation"] = writeLease?.AllowDeletion != true,
                 ["codex_task_mode"] = !project.AllowCodexTasks ? "disabled" : project.AllowCodexWrite ? "workspace-write" : "read-only",
+                ["codex_write_access"] = project.AllowCodexTasks && project.AllowCodexWrite ? "checked_on_task_start" : "not_granted",
                 ["collaboration_enabled"] = project.AllowWebRead && project.AllowCodexAskWeb
             });
         }

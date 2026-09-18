@@ -100,6 +100,12 @@ if (appServerLaunch)
     startInfo.ArgumentList.Add("-c");
     startInfo.ArgumentList.Add("web_search=\"disabled\"");
     startInfo.ArgumentList.Add("-c");
+    startInfo.ArgumentList.Add($"sandbox_mode=\"{(allowWrite ? "workspace-write" : "read-only")}\"");
+    // The process-level policy is also used for Windows sandbox initialization.
+    // Do not inherit unrelated global writable roots before the first turn.
+    startInfo.ArgumentList.Add("-c");
+    startInfo.ArgumentList.Add("sandbox_workspace_write.writable_roots=[]");
+    startInfo.ArgumentList.Add("-c");
     startInfo.ArgumentList.Add("sandbox_workspace_write.network_access=false");
     startInfo.ArgumentList.Add("-c");
     startInfo.ArgumentList.Add("sandbox_workspace_write.exclude_tmpdir_env_var=true");

@@ -34,13 +34,14 @@ public sealed class CodexShimProtocolTests
     [InlineData("thread/fork")]
     public void ThreadPoliciesAreBoundToLocalWriteGrant(string method)
     {
-        var line = new JsonObject { ["method"] = method, ["params"] = new JsonObject { ["sandbox"] = "danger-full-access", ["config"] = new JsonObject() } }.ToJsonString();
+        var line = new JsonObject { ["method"] = method, ["params"] = new JsonObject { ["sandbox"] = "danger-full-access", ["permissions"] = ":danger-full-access", ["config"] = new JsonObject() } }.ToJsonString();
         foreach (var write in new[] { false, true })
         {
             var parameters = Parse(AppServerProtocolGuard.RewriteClientLine(line, Root, write))["params"]!;
             Assert.Equal(write ? "workspace-write" : "read-only", parameters["sandbox"]!.GetValue<string>());
             Assert.Equal("never", parameters["approvalPolicy"]!.GetValue<string>());
             Assert.Null(parameters["config"]);
+            Assert.Null(parameters["permissions"]);
         }
     }
 
@@ -171,6 +172,7 @@ public sealed class CodexShimProtocolTests
             Assert.Null(reply["error"]);
             var config=reply["result"]!["config"]!;
             Assert.Equal("disabled",config["web_search"]!.GetValue<string>());
+            Assert.Empty(config["sandbox_workspace_write"]!["writable_roots"]!.AsArray());
             if(config["mcp_servers"] is JsonObject servers)
                 Assert.All(servers,server=>Assert.False(server.Value!["enabled"]!.GetValue<bool>()));
         }

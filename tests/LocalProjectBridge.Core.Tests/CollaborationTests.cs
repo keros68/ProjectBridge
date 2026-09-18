@@ -33,6 +33,7 @@ public sealed class CollaborationTests : IDisposable
     public void RoundTrip_PersistsReplyAndRejectsConflictingRetry()
     {
         var request=Submit();
+        Assert.StartsWith("|from_codex|:\n", CollaborationStore.BuildPrompt(request));
         Assert.Equal(CollaborationStatus.Pending,request.Status);
         Assert.Throws<CollaborationException>(()=>Reply(request));
         Assert.Equal(CollaborationStatus.Read,Read(request).Status);
