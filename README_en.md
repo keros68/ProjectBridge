@@ -6,7 +6,7 @@
 
 [简体中文](README.md) · [Download](https://github.com/keros68/ProjectBridge/releases/latest) · [Get started](#get-started) · [User guide (Chinese)](docs/guide.md) · [Technical notes (Chinese)](docs/technical.md) · [License](#license)
 
-**Let ChatGPT on the web read and edit your local projects, and hand development tasks to Codex on your machine.**
+**ChatGPT on the web reads and edits local projects, and hands development tasks to Codex on the same machine.**
 
 </div>
 
