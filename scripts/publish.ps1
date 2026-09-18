@@ -19,23 +19,17 @@ if (-not $ResolvedPublishRoot.StartsWith($ArtifactsRoot + [IO.Path]::DirectorySe
 if (Test-Path -LiteralPath $ResolvedPublishRoot) { Remove-Item -LiteralPath $ResolvedPublishRoot -Recurse -Force }
 New-Item -ItemType Directory -Path $PublishRoot -Force | Out-Null
 
-dotnet publish (Join-Path $RepositoryRoot "src\LocalProjectBridge\LocalProjectBridge.csproj") `
-    -c Release -r $Runtime --self-contained true `
-    -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -p:DebugSymbols=false `
-    -o $PublishRoot
-if ($LASTEXITCODE -ne 0) { throw "ProjectBridge 发布失败。" }
-
-dotnet publish (Join-Path $RepositoryRoot "src\CodexShim\CodexShim.csproj") `
-    -c Release -r $Runtime --self-contained true `
-    -p:PublishSingleFile=true -p:DebugType=None -p:DebugSymbols=false `
-    -o $PublishRoot
-if ($LASTEXITCODE -ne 0) { throw "Codex 启动组件发布失败。" }
-
-dotnet publish (Join-Path $RepositoryRoot "src\ProjectBridge.Relay\ProjectBridge.Relay.csproj") `
-    -c Release -r $Runtime --self-contained true `
-    -p:PublishSingleFile=true -p:DebugType=None -p:DebugSymbols=false `
-    -o $PublishRoot
-if ($LASTEXITCODE -ne 0) { throw "本地协作助手发布失败。" }
+# 三个程序发布到同一目录并共用一份 .NET 运行时（不用单文件，否则每个 exe 各带一份运行时）。
+# 只保留中文界面资源；英文为内置默认资源。
+$PublishArguments = @("-c", "Release", "-r", $Runtime, "--self-contained", "true",
+    "-p:DebugType=None", "-p:DebugSymbols=false", "-p:SatelliteResourceLanguages=zh-Hans", "-o", $PublishRoot)
+foreach ($Component in @(
+    @{ Project = "src\LocalProjectBridge\LocalProjectBridge.csproj"; Name = "ProjectBridge" },
+    @{ Project = "src\CodexShim\CodexShim.csproj"; Name = "Codex 启动组件" },
+    @{ Project = "src\ProjectBridge.Relay\ProjectBridge.Relay.csproj"; Name = "本地协作助手" })) {
+    dotnet publish (Join-Path $RepositoryRoot $Component.Project) @PublishArguments
+    if ($LASTEXITCODE -ne 0) { throw "$($Component.Name) 发布失败。" }
+}
 
 if (-not $SkipBundle) {
     $BackendSource = Join-Path $env:LOCALAPPDATA "LocalProjectBridge\backends"
@@ -75,6 +69,14 @@ if (-not $SkipBundle) {
 
         & robocopy.exe $SourcePath $TargetPath /E /XD $ExcludedDirectories /NFL /NDL /NJH /NJS /NP | Out-Null
         if ($LASTEXITCODE -gt 7) { throw "复制发布组件失败：$BackendName" }
+
+        if ($BackendName -eq "transceiver") {
+            # 原生模块按“平台-架构”选择预编译文件，只保留本包对应的一个；其余平台的二进制不影响源码完整性。
+            $KeepPrebuild = "win32-$($Runtime -replace '^win-', '').node"
+            $Prebuilds = Join-Path $TargetPath "plugins\transceiver\dist\reverse-bridge\prebuilds"
+            if (-not (Test-Path -LiteralPath (Join-Path $Prebuilds $KeepPrebuild))) { throw "transceiver 缺少 $KeepPrebuild。" }
+            Get-ChildItem -LiteralPath $Prebuilds -File | Where-Object Name -ne $KeepPrebuild | Remove-Item -Force
+        }
 
         if ($BackendName -eq "codex-with-chatgpt") {
             & $Corepack $PackageManager --dir $TargetPath install --prod --frozen-lockfile --node-linker=hoisted --package-import-method=copy
