@@ -117,6 +117,8 @@ if (-not $SkipBundle) {
         if (-not (Test-Path -LiteralPath $RuntimeFile)) { throw "缺少发布运行组件：$RuntimeFile" }
         Copy-Item -LiteralPath $RuntimeFile -Destination $RuntimeTarget -Force
     }
+    & (Join-Path $RuntimeTarget "tunnel-client.exe") --version
+    if ($LASTEXITCODE -ne 0) { throw "发布包中的 tunnel-client 无法启动。" }
     foreach ($Readme in @("README.md", "README_en.md")) {
         Copy-Item -LiteralPath (Join-Path $RepositoryRoot $Readme) -Destination $PublishRoot -Force
     }
@@ -149,6 +151,11 @@ if (-not $SkipBundle) {
     try {
         New-Item -ItemType Directory -Path $VerificationRoot -Force | Out-Null
         [System.IO.Compression.ZipFile]::ExtractToDirectory($ArchivePath, $VerificationRoot)
+
+        $ExtractedTunnelClient = Join-Path $VerificationRoot "runtime\tunnel-client.exe"
+        if (-not (Test-Path -LiteralPath $ExtractedTunnelClient)) { throw "免安装包缺少 tunnel-client。" }
+        & $ExtractedTunnelClient --version
+        if ($LASTEXITCODE -ne 0) { throw "免安装包中的 tunnel-client 无法启动。" }
 
         $ExtractedC2c = Join-Path $VerificationRoot "backends\codex-with-chatgpt"
         if (-not (Test-Path -LiteralPath (Join-Path $ExtractedC2c "node_modules\commander"))) {

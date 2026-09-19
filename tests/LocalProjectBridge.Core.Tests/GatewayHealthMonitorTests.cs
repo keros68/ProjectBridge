@@ -29,6 +29,21 @@ public sealed class GatewayHealthMonitorTests : IDisposable
         new SecureTunnelHealth(true, true, false)
     };
 
+    [Fact]
+    public async Task MissingTunnelClient_BlocksConnectionWithPackageRepairInstructions()
+    {
+        File.Delete(_tunnelClient);
+        await using var adapter = CreateAdapter(new QueueTunnelRuntime());
+        var profile = NewProfile();
+        var policy = new SessionPolicy(profile.Id, Guid.NewGuid(), "test", _projectPath,
+            CapabilityFlags.WebRead, DateTimeOffset.UtcNow, null);
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => adapter.AssertReadyAsync(policy));
+        Assert.Contains("tunnel-client.exe", error.Message);
+        Assert.Contains("重新安装 ProjectBridge", error.Message);
+        Assert.Null(adapter.ListenUrl);
+    }
+
     [Theory]
     [MemberData(nameof(RuntimeFaults))]
     public async Task RuntimeHealthFailure_DegradesControllerStopsGatewayAndPreservesCallAsHistory(

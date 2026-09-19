@@ -30,12 +30,23 @@ public sealed class SecureTunnelRuntime : ISecureTunnelRuntime
     private const string ProtectedRuntimeKeyEnvironmentVariable = "PROJECTBRIDGE_TUNNEL_RUNTIME_KEY";
     private readonly CommandRunner _runner;
     private readonly IRuntimeCredentialStore _credentialStore;
+    private readonly Func<string, IReadOnlyList<string>, CancellationToken,
+        IReadOnlyDictionary<string, string?>, Task<CommandResult>> _runCommand;
     private readonly HashSet<string> _ownedAliases = new(StringComparer.OrdinalIgnoreCase);
 
     public SecureTunnelRuntime(CommandRunner runner, IRuntimeCredentialStore? credentialStore = null)
+        : this(runner, credentialStore, (executable, arguments, token, environment) =>
+            runner.RunAsync(executable, arguments, cancellationToken: token, environment: environment))
+    {
+    }
+
+    internal SecureTunnelRuntime(CommandRunner runner, IRuntimeCredentialStore? credentialStore,
+        Func<string, IReadOnlyList<string>, CancellationToken,
+            IReadOnlyDictionary<string, string?>, Task<CommandResult>> runCommand)
     {
         _runner = runner;
         _credentialStore = credentialStore ?? new WindowsRuntimeCredentialStore();
+        _runCommand = runCommand;
     }
 
     /// <summary>
@@ -70,13 +81,14 @@ public sealed class SecureTunnelRuntime : ISecureTunnelRuntime
             runtimeCredentialReference = "env:" + ProtectedRuntimeKeyEnvironmentVariable;
         }
         await StopRecordedOwnedAsync(executable, profile, stateDirectory, cancellationToken).ConfigureAwait(false);
+        // Keep ownership before launch: connect can fail after starting a child process.
         lock (_ownedAliases) _ownedAliases.Add(alias);
         WriteOwnershipMarker(profile, stateDirectory);
-        var result = await _runner.RunAsync(
+        var result = await _runCommand(
             executable,
             BuildConnectArguments(profile, mcpServerUrl, stateDirectory, runtimeCredentialReference),
-            cancellationToken: cancellationToken,
-            environment: environment).ConfigureAwait(false);
+            cancellationToken,
+            environment).ConfigureAwait(false);
         if (!result.Success)
             throw new InvalidOperationException(string.IsNullOrWhiteSpace(result.StandardError)
                 ? "无法启动 OpenAI Secure Tunnel。"
@@ -139,11 +151,11 @@ public sealed class SecureTunnelRuntime : ISecureTunnelRuntime
         CancellationToken cancellationToken,
         IReadOnlyDictionary<string, string?> environment)
     {
-        var result = await _runner.RunAsync(
+        var result = await _runCommand(
             executable,
             ["runtimes", "status", alias, "--json"],
-            cancellationToken: cancellationToken,
-            environment: environment).ConfigureAwait(false);
+            cancellationToken,
+            environment).ConfigureAwait(false);
         return result.Success && !string.IsNullOrWhiteSpace(result.StandardOutput)
             ? ParseHealth(result.StandardOutput, mcpServerUrl)
             : new SecureTunnelHealth(false, false, false);
@@ -213,32 +225,56 @@ public sealed class SecureTunnelRuntime : ISecureTunnelRuntime
         var recorded = IsRecordedOwner(profile, marker);
         lock (_ownedAliases)
         {
-            if (!_ownedAliases.Remove(alias) && !recorded) return;
+            if (!_ownedAliases.Contains(alias) && !recorded) return;
         }
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(8));
         CommandResult result;
         try
         {
-            result = await _runner.RunAsync(
+            result = await _runCommand(
                 executable,
                 ["runtimes", "stop", alias, "--json"],
-                cancellationToken: timeout.Token,
-                environment: BuildRuntimeEnvironment(stateDirectory)).ConfigureAwait(false);
+                timeout.Token,
+                BuildRuntimeEnvironment(stateDirectory)).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            lock (_ownedAliases) _ownedAliases.Add(alias);
             throw new TimeoutException("停止本程序拥有的 OpenAI Secure Tunnel 超时。");
         }
-        if (!result.Success)
+        if (!result.Success && !IsAbsentRuntime(result, alias, stateDirectory))
         {
-            lock (_ownedAliases) _ownedAliases.Add(alias);
             throw new InvalidOperationException("停止本程序拥有的 OpenAI Secure Tunnel 失败。" +
                 (string.IsNullOrWhiteSpace(result.StandardError) ? string.Empty : " " + _runner.Redact(result.StandardError.Trim())));
         }
+        lock (_ownedAliases) _ownedAliases.Remove(alias);
         try { File.Delete(marker); }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
+    }
+
+    private static bool IsAbsentRuntime(CommandResult result, string alias, string stateDirectory)
+    {
+        // tunnel-client v0.0.13 reports a missing alias on stderr. Match only this
+        // alias and this diagnostic; other CLI failures must remain actionable.
+        var expected = $"alias {alias} is not known; run create or connect first";
+        var diagnostic = result.StandardError.Trim();
+        if (diagnostic != expected && diagnostic != "Error: " + expected) return false;
+
+        // A missing alias alone does not rule out a partially started runtime.
+        // The upstream .yaml file is written as JSON; never remove its records.
+        var processPath = Path.Combine(Path.GetFullPath(stateDirectory), "state", "processes.yaml");
+        try
+        {
+            using var json = JsonDocument.Parse(File.ReadAllText(processPath));
+            return json.RootElement.ValueKind == JsonValueKind.Object
+                && !json.RootElement.TryGetProperty(alias, out _);
+        }
+        catch (FileNotFoundException) { return true; }
+        catch (DirectoryNotFoundException) { return true; }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or JsonException)
+        {
+            return false;
+        }
     }
 
     private async Task StopRecordedOwnedAsync(

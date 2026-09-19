@@ -72,7 +72,8 @@ public sealed class GatewayAdapter : ConnectableAdapterBase, IConnectionReadines
     public override async Task AssertReadyAsync(SessionPolicy policy, CancellationToken cancellationToken = default)
     {
         var paths = Discover();
-        if (!paths.TunnelReady) throw new InvalidOperationException("统一网关所需的 tunnel-client 尚未安装。");
+        if (!paths.TunnelReady) throw new InvalidOperationException(
+            "缺少内置隧道组件 tunnel-client.exe，请重新安装 ProjectBridge，或完整解压免安装包并保留 runtime 文件夹。");
         await _tunnelRuntime.AssertRuntimeCredentialReadyAsync(_connectionProfile).ConfigureAwait(false);
     }
 
